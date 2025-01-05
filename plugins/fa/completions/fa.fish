@@ -16,32 +16,55 @@ function __fish_fa_using_command
     return 1
 end
 
-function __fish_fa_get_third_arg
+function __fish_fa_needs_type
     set -l cmd (commandline -opc)
-    if test (count $cmd) -gt 2
-        echo "$cmd[3]"
+    if test (count $cmd) -eq 2; and test "$cmd[2]" = "map"
+        return 0
     end
+    return 1
+end
+
+function __fish_fa_needs_file
+    set -l cmd (commandline -opc)
+    if test (count $cmd) -eq 3; and test "$cmd[2]" = "map"
+        string match -q -r '^(functions|common|apps|completions)$' -- "$cmd[3]"
+        return $status
+    end
+    return 1
 end
 
 function __fish_fa_list_files --argument-names type
     set -l base_dir ~/dev/scripts/fish
+    set -l dir
     switch $type
         case functions
-            ls -1 $base_dir/functions/*.fish 2>/dev/null | string replace -r ".*/([^/]+)" '$1'
+            set dir $base_dir/functions
         case common
-            ls -1 $base_dir/functions/common/*.fish 2>/dev/null | string replace -r ".*/([^/]+)" '$1'
+            set dir $base_dir/functions/common
         case apps
-            ls -1 $base_dir/functions/apps/*.fish 2>/dev/null | string replace -r ".*/([^/]+)" '$1'
+            set dir $base_dir/functions/apps
         case completions
-            ls -1 $base_dir/completions/*.fish 2>/dev/null | string replace -r ".*/([^/]+)" '$1'
+            set dir $base_dir/completions
+        case '*'
+            return 1
+    end
+
+    if test -d "$dir"
+        # 获取目录下的所有 .fish 文件
+        for f in $dir/*.fish
+            # 检查文件是否真实存在（避免空目录下的通配符匹配）
+            if test -f "$f"
+                basename "$f"
+            end
+        end
     end
 end
 
-function __fish_fa_should_complete_files
-    set -l cmd (commandline -opc)
-    test (count $cmd) -gt 2; or return 1
-    string match -q -r '^(functions|common|apps|completions)$' -- "$cmd[3]"
-    return $status
+function __fish_fa_list_plugins
+    set -l plugins_dir ~/dev/scripts/fish/plugins
+    if test -d "$plugins_dir"
+        command ls -1 "$plugins_dir" 2>/dev/null
+    end
 end
 
 function __fish_fa_list_linked_files
@@ -50,10 +73,6 @@ function __fish_fa_list_linked_files
             basename "$f"
         end
     end
-end
-
-function __fish_fa_list_plugins
-    ls -1 ~/dev/scripts/fish/plugins/ 2>/dev/null
 end
 
 # 主命令补全
@@ -71,13 +90,13 @@ complete -f -c fa -n '__fish_fa_using_command plugin' -a add -d '创建新插件
 complete -f -c fa -n '__fish_fa_using_command plugin' -a map -d '映射插件中的所有文件'
 
 # map 命令的类型补全
-complete -f -c fa -n '__fish_fa_using_command map' -a 'functions' -d '直接在 functions 目录下的文件'
-complete -f -c fa -n '__fish_fa_using_command map' -a 'common' -d 'functions/common 下的通用函数'
-complete -f -c fa -n '__fish_fa_using_command map' -a 'apps' -d 'functions/apps 下的应用函数'
-complete -f -c fa -n '__fish_fa_using_command map' -a 'completions' -d '补全文件'
+complete -f -c fa -n __fish_fa_needs_type -a functions -d '直接在 functions 目录下的文件'
+complete -f -c fa -n __fish_fa_needs_type -a common -d 'functions/common 下的通用函数'
+complete -f -c fa -n __fish_fa_needs_type -a apps -d 'functions/apps 下的应用函数'
+complete -f -c fa -n __fish_fa_needs_type -a completions -d '补全文件'
 
 # 文件名补全
-complete -f -c fa -n '__fish_fa_should_complete_files' -a '(__fish_fa_list_files (__fish_fa_get_third_arg))'
+complete -f -c fa -n __fish_fa_needs_file -a '(__fish_fa_list_files (commandline -opc)[3])'
 
 # plugin 命令的插件名补全
 complete -f -c fa -n '__fish_fa_using_command plugin' -a '(__fish_fa_list_plugins)'

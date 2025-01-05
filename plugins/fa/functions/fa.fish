@@ -1,5 +1,5 @@
 function fa --description 'Fish Assistant - manage fish functions and plugins'
-    set -l version "0.1.0"
+    set -l fa_version "0.1.0"  # 改名为 fa_version
     set -l base_dir ~/dev/scripts/fish
     set -l fish_config_dir ~/.config/fish
 
@@ -18,7 +18,7 @@ function fa --description 'Fish Assistant - manage fish functions and plugins'
                 echo "错误: plugin 命令需要指定操作类型 (add/map)"
                 return 1
             end
-            
+
             set -l subcmd $argv[1]
             set -e argv[1]
 
@@ -29,14 +29,14 @@ function fa --description 'Fish Assistant - manage fish functions and plugins'
                         return 1
                     end
                     _fa_plugin_add $argv[1]
-                
+
                 case map
                     if test (count $argv) -ne 1
                         echo "用法: fa plugin map <plugin_name>"
                         return 1
                     end
                     _fa_plugin_map $argv[1]
-                
+
                 case '*'
                     echo "未知的 plugin 子命令: $subcmd"
                     return 1
@@ -70,7 +70,7 @@ function fa --description 'Fish Assistant - manage fish functions and plugins'
             _fa_unmap $argv[1]
 
         case version
-            echo "Fish Assistant v$version"
+            echo "Fish Assistant v$fa_version"
 
         case '*'
             echo "未知命令: $cmd"
@@ -90,10 +90,10 @@ function _fa_plugin_add --argument-names plugin_name
 
     # 创建目录结构
     mkdir -p $plugin_dir/{functions,completions}
-    
+
     # 创建主函数文件
     touch $plugin_dir/functions/$plugin_name.fish
-    
+
     echo "创建了插件目录结构:"
     echo "  $plugin_dir/"
     echo "  ├─ functions/"
@@ -152,7 +152,7 @@ function _fa_map --argument-names type file
             else
                 set source_path $base_dir/functions/$type/$file
             end
-            
+
             if not test -f $source_path
                 echo "错误: 源文件不存在: $source_path"
                 return 1
