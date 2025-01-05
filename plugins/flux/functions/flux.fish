@@ -21,14 +21,15 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
     set -a aspect_ratios "9:16  (手机屏幕，竖屏视频)"
     set -a aspect_ratios "3:2   (相机常见)"
     set -a aspect_ratios "1:1   (方形，社交媒体)"
-    set -l aspect_ratio_values "16:9" "4:3" "21:9" "9:16" "3:2" "1:1"
+    set -a aspect_ratios "自定义 (输入任意宽高比)"
+    set -l aspect_ratio_values "16:9" "4:3" "21:9" "9:16" "3:2" "1:1" custom
 
     # 创建保存目录
     set -l save_dir ~/Desktop/flux
     mkdir -p $save_dir
 
     # 参数解析
-    argparse 'h/help' 'f/file=' 'p/prompt=' 's/seed=' -- $argv
+    argparse h/help 'f/file=' 'p/prompt=' 's/seed=' -- $argv
     or return 1
 
     if set -q _flag_help
@@ -81,7 +82,7 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         # 创建临时文件保存提示词，退出时自动删除
         set -l temp_file (mktemp)
         trap "rm -f $temp_file" EXIT
-        printf "%s\n" $prompt_content > $temp_file
+        printf "%s\n" $prompt_content >$temp_file
         set prompt_arg --prompt-file $temp_file
         set prompt_source "interactive input"
     end
@@ -101,7 +102,28 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
     if test -z "$choice"
         set aspect_ratio "16:9"
     else if test "$choice" -ge 1 -a "$choice" -le (count $aspect_ratio_values)
-        set aspect_ratio $aspect_ratio_values[$choice]
+        if test "$aspect_ratio_values[$choice]" = custom
+            # 处理自定义宽高比
+            while true
+                read -P "请输入宽度 (正整数): " width
+                if string match -qr '^[1-9][0-9]*$' -- $width
+                    break
+                end
+                echo "无效的宽度，请重新输入"
+            end
+
+            while true
+                read -P "请输入高度 (正整数): " height
+                if string match -qr '^[1-9][0-9]*$' -- $height
+                    break
+                end
+                echo "无效的高度，请重新输入"
+            end
+
+            set aspect_ratio "$width:$height"
+        else
+            set aspect_ratio $aspect_ratio_values[$choice]
+        end
     else
         echo "Error: Invalid choice"
         return 1
@@ -121,7 +143,7 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
     function mkfifo_temp
         set -l pipe_path (mktemp -u)
         mkfifo $pipe_path
-        echo $pipe_path  # 返回管道路径供调用者使用
+        echo $pipe_path # 返回管道路径供调用者使用
     end
 
     # 创建临时文件
@@ -133,7 +155,7 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
     echo "使用宽高比: $aspect_ratio"
 
     # 直接执行命令并同时将输出发送到终端和文件
-    python -u $SCRIPTS_DIR/fish/flux/generate_flux_image.py $cmd_args 2>&1 | tee $output_file &
+    python -u $SCRIPTS_DIR/fish/plugins/flux/generate_flux_image.py $cmd_args 2>&1 | tee $output_file &
 
     # 检查命令是否成功执行
     if test $status -ne 0
@@ -193,7 +215,7 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         set -l prompt_file $base_filename.txt
         # 如果文件不存在或为空文件
         if test ! -s $prompt_file
-            printf "%s" "$prompt_content" > $prompt_file
+            printf "%s" "$prompt_content" >$prompt_file
             echo "提示词已保存到: $prompt_file"
         else
             echo "提示词文件已存在: $prompt_file"
@@ -202,7 +224,7 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         # 添加文件名后缀
         # 如果seed不为空，使用seed作为后缀，否则使用当前时间戳
         # if test -n "$seed" # for the usage of string
-        if test "$seed" != "null" # for the usage of jq
+        if test "$seed" != null # for the usage of jq
             set base_filename $base_filename.s$seed
         else
             set unix_timestamp (date +%s.%N)
@@ -239,3 +261,4 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
 
     rm -f $output_file
 end
+
