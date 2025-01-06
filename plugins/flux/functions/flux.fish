@@ -13,9 +13,6 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         end
     end
 
-    # 获取当前conda环境
-    set -l initial_env $CONDA_DEFAULT_ENV
-
     # 检查flux环境是否存在
     if not conda env list | grep -q "^bfl-flux "
         echo "Error: bfl-flux conda environment not found
@@ -47,11 +44,7 @@ Please create it and install required packages using:
     argparse h/help 'f/file=' 'p/prompt=' 's/seed=' -- $argv
     or begin
         # 如果参数解析失败，确保切换回原环境
-        if test "$initial_env" = base -o -z "$initial_env"
-            conda deactivate
-        else
-            conda activate $initial_env
-        end
+        conda deactivate
         return 1
     end
 
@@ -69,11 +62,7 @@ Please create it and install required packages using:
             echo "  $ratio"
         end
         # 在显示帮助后切换回原环境
-        if test "$initial_env" = base -o -z "$initial_env"
-            conda deactivate
-        else
-            conda activate $initial_env
-        end
+        conda deactivate
         return 0
     end
 
@@ -86,11 +75,7 @@ Please create it and install required packages using:
         if not test -f $_flag_file
             echo "Error: Prompt file does not exist: $_flag_file"
             # 错误时切换回原环境
-            if test "$initial_env" = base -o -z "$initial_env"
-                conda deactivate
-            else
-                conda activate $initial_env
-            end
+            conda deactivate
             return 1
         end
         # 读取文件内容并确保正确处理
@@ -98,11 +83,7 @@ Please create it and install required packages using:
         if test -z "$prompt_content"
             echo "Error: Prompt file is empty"
             # 错误时切换回原环境
-            if test "$initial_env" = base -o -z "$initial_env"
-                conda deactivate
-            else
-                conda activate $initial_env
-            end
+            conda deactivate
             return 1
         end
         set prompt_arg --prompt-file $_flag_file
@@ -118,11 +99,7 @@ Please create it and install required packages using:
         if test -z "$prompt_content"
             echo "Error: No prompt provided"
             # 错误时切换回原环境
-            if test "$initial_env" = base -o -z "$initial_env"
-                conda deactivate
-            else
-                conda activate $initial_env
-            end
+            conda deactivate
             return 1
         end
 
@@ -174,11 +151,7 @@ Please create it and install required packages using:
     else
         echo "Error: Invalid choice"
         # 错误时切换回原环境
-        if test "$initial_env" = base -o -z "$initial_env"
-            conda deactivate
-        else
-            conda activate $initial_env
-        end
+        conda deactivate
         return 1
     end
 
@@ -216,11 +189,7 @@ Please create it and install required packages using:
         cat $output_file
         rm -f $output_file
         # 错误时切换回原环境
-        if test "$initial_env" = base -o -z "$initial_env"
-            conda deactivate
-        else
-            conda activate $initial_env
-        end
+        conda deactivate
         return 1
     end
 
@@ -305,11 +274,7 @@ Please create it and install required packages using:
                 rm -f $image_file
                 rm -f $output_file
                 # 错误时切换回原环境
-                if test "$initial_env" = base -o -z "$initial_env"
-                    conda deactivate
-                else
-                    conda activate $initial_env
-                end
+                conda deactivate
                 return 1
             end
         else
@@ -317,31 +282,19 @@ Please create it and install required packages using:
             cat $output_file
             rm -f $output_file
             # 错误时切换回原环境
-            if test "$initial_env" = base -o -z "$initial_env"
-                conda deactivate
-            else
-                conda activate $initial_env
-            end
+            conda deactivate
             return 1
         end
     else
         echo "Error: Could not find complete Result section in output"
         rm -f $output_file
         # 错误时切换回原环境
-        if test "$initial_env" = base -o -z "$initial_env"
-            conda deactivate
-        else
-            conda activate $initial_env
-        end
+        conda deactivate
         return 1
     end
 
     rm -f $output_file
 
     # 成功完成后，切换回原环境
-    if test "$initial_env" = base -o -z "$initial_env"
-        conda deactivate
-    else
-        conda activate $initial_env
-    end
+    conda deactivate
 end
