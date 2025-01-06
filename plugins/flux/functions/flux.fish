@@ -6,12 +6,27 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
     end
 
     # 检查必要的命令
-    for cmd in md5sum jq python curl
+    for cmd in md5sum jq python curl conda
         if not command -v $cmd >/dev/null
             echo "Error: $cmd is not installed. Please install it first."
             return 1
         end
     end
+
+    # 获取当前conda环境
+    set -l initial_env $CONDA_DEFAULT_ENV
+
+    # 检查flux环境是否存在
+    if not conda env list | grep -q "^bfl-flux "
+        echo "Error: bfl-flux conda environment not found
+Please create it and install required packages using:
+  conda create -n bfl-flux python=3.12
+  pip install requests"
+        return 1
+    end
+
+    # 激活flux环境
+    conda activate bfl-flux
 
     # 预设的宽高比选项
     set -l aspect_ratios
@@ -30,7 +45,15 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
 
     # 参数解析
     argparse h/help 'f/file=' 'p/prompt=' 's/seed=' -- $argv
-    or return 1
+    or begin
+        # 如果参数解析失败，确保切换回原环境
+        if test "$initial_env" = base -o -z "$initial_env"
+            conda deactivate
+        else
+            conda activate $initial_env
+        end
+        return 1
+    end
 
     if set -q _flag_help
         echo "Usage: flux [-h/--help] [-f/--file PROMPT_FILE] [-p/--prompt PROMPT_TEXT] [-s/--seed SEED]"
@@ -45,6 +68,12 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         for ratio in $aspect_ratios
             echo "  $ratio"
         end
+        # 在显示帮助后切换回原环境
+        if test "$initial_env" = base -o -z "$initial_env"
+            conda deactivate
+        else
+            conda activate $initial_env
+        end
         return 0
     end
 
@@ -56,12 +85,24 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
     if set -q _flag_file
         if not test -f $_flag_file
             echo "Error: Prompt file does not exist: $_flag_file"
+            # 错误时切换回原环境
+            if test "$initial_env" = base -o -z "$initial_env"
+                conda deactivate
+            else
+                conda activate $initial_env
+            end
             return 1
         end
         # 读取文件内容并确保正确处理
         set prompt_content (cat $_flag_file | string collect)
         if test -z "$prompt_content"
             echo "Error: Prompt file is empty"
+            # 错误时切换回原环境
+            if test "$initial_env" = base -o -z "$initial_env"
+                conda deactivate
+            else
+                conda activate $initial_env
+            end
             return 1
         end
         set prompt_arg --prompt-file $_flag_file
@@ -76,6 +117,12 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         set prompt_content (read -z | string collect)
         if test -z "$prompt_content"
             echo "Error: No prompt provided"
+            # 错误时切换回原环境
+            if test "$initial_env" = base -o -z "$initial_env"
+                conda deactivate
+            else
+                conda activate $initial_env
+            end
             return 1
         end
 
@@ -126,6 +173,12 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         end
     else
         echo "Error: Invalid choice"
+        # 错误时切换回原环境
+        if test "$initial_env" = base -o -z "$initial_env"
+            conda deactivate
+        else
+            conda activate $initial_env
+        end
         return 1
     end
 
@@ -162,6 +215,12 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
         echo "Error: Generation failed"
         cat $output_file
         rm -f $output_file
+        # 错误时切换回原环境
+        if test "$initial_env" = base -o -z "$initial_env"
+            conda deactivate
+        else
+            conda activate $initial_env
+        end
         return 1
     end
 
@@ -245,20 +304,44 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
                 echo "下载失败 (状态码: $download_status)"
                 rm -f $image_file
                 rm -f $output_file
+                # 错误时切换回原环境
+                if test "$initial_env" = base -o -z "$initial_env"
+                    conda deactivate
+                else
+                    conda activate $initial_env
+                end
                 return 1
             end
         else
             echo "Error: Could not extract download URL from result"
             cat $output_file
             rm -f $output_file
+            # 错误时切换回原环境
+            if test "$initial_env" = base -o -z "$initial_env"
+                conda deactivate
+            else
+                conda activate $initial_env
+            end
             return 1
         end
     else
         echo "Error: Could not find complete Result section in output"
         rm -f $output_file
+        # 错误时切换回原环境
+        if test "$initial_env" = base -o -z "$initial_env"
+            conda deactivate
+        else
+            conda activate $initial_env
+        end
         return 1
     end
 
     rm -f $output_file
-end
 
+    # 成功完成后，切换回原环境
+    if test "$initial_env" = base -o -z "$initial_env"
+        conda deactivate
+    else
+        conda activate $initial_env
+    end
+end
