@@ -1,0 +1,3 @@
+[submodule "plugins/codepack/ts-parser"]
+	path = plugins/codepack/ts-parser
+	url = git@github.com:donghao1393/ts-parser.git
