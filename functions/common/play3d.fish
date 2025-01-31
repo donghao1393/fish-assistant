@@ -10,7 +10,7 @@ end
 function __play3d_convert_subtitle_to_utf8
     set input_file $argv[1]
     set input_file (string replace -r '^\./' '' -- $input_file)
-    
+
     if not test -f "$input_file"
         echo "错误：文件不存在 - $input_file" >&2
         return 1
@@ -19,20 +19,20 @@ function __play3d_convert_subtitle_to_utf8
         echo "错误：不是 .srt 文件 - $input_file" >&2
         return 1
     end
-    
+
     set file_info (file -I "$input_file")
     set current_charset (string match -r 'charset=([^[:space:]]+)' $file_info)[2]
-    
+
     # 生成临时字幕文件名
     set temp_srt (__play3d_generate_temp_filename "play_zimu_" ".srt")
-    
+
     if test "$current_charset" = utf-8
         # 如果已是 UTF-8，创建符号链接
         ln -s (realpath "$input_file") "$temp_srt"
         echo -n $temp_srt
         return 0
     end
-    
+
     # 尝试转换编码
     if test "$current_charset" = unknown-8bit -o "$current_charset" = binary
         if iconv -f gb18030 -t utf-8 "$input_file" >"$temp_srt" 2>/dev/null
@@ -63,16 +63,16 @@ function play3d --description "播放3D视频，自动处理HSBS格式和字幕�
         echo "用法: play3d <视频文件> [字幕文件]"
         return 1
     end
-    
+
     set video_file (string replace -r '^\./' '' -- $argv[1])
     set subtitle_file ""
     set temp_files # 用于存储所有临时文件路径
-    
+
     # 创建视频文件的符号链接
     set temp_video (__play3d_generate_temp_filename "play_shipin_" (string match -r '\.[^.]*$' "$video_file"))
     ln -s (realpath "$video_file") "$temp_video"
     set -a temp_files "$temp_video"
-    
+
     # 处理字幕
     if test (count $argv) -ge 2
         set subtitle_file (string replace -r '^\./' '' -- $argv[2])
@@ -88,7 +88,7 @@ function play3d --description "播放3D视频，自动处理HSBS格式和字幕�
             set subtitle_file $auto_srt
         end
     end
-    
+
     if test -n "$subtitle_file"
         set utf8_subtitle (__play3d_convert_subtitle_to_utf8 "$subtitle_file")
         set convert_status $status
@@ -123,7 +123,7 @@ function play3d --description "播放3D视频，自动处理HSBS格式和字幕�
 [left][right]hstack"
         ffplay -vf "$filter_complex" -- "$temp_video"
     end
-    
+
     # 清理所有临时文件
     for temp_file in $temp_files
         unlink "$temp_file" 2>/dev/null

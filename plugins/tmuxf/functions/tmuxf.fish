@@ -24,7 +24,7 @@ function tmuxf --description 'Tmux session manager for fish'
     if set -q _flag_delay
         set delay $_flag_delay
     end
-    
+
     set -l cmd $argv[1]
     set -l name $argv[2]
     set -l tmux_config_dir "$HOME/.config/tmuxf"
@@ -39,7 +39,7 @@ function tmuxf --description 'Tmux session manager for fish'
                 echo "Usage: tmuxf save NAME"
                 return 1
             end
-            
+
             # 确保tmux在运行
             if not tmux list-sessions 2>/dev/null >/dev/null
                 echo "No tmux session running"
@@ -68,7 +68,7 @@ function tmuxf --description 'Tmux session manager for fish'
             echo "    tmux kill-session -t '$name'" >> $config_file
             echo "end" >> $config_file
             echo >> $config_file
-            
+
             echo "# 创建新会话" >> $config_file
             # 获取第一个窗口的信息用于创建会话
             set -l first_window (echo $windows[1] | string split " ")
@@ -80,7 +80,7 @@ function tmuxf --description 'Tmux session manager for fish'
                 echo "tmux new-session -d -s '$name' -c '$first_path' '$first_cmd'" >> $config_file
             end
             echo "test \$delay -gt 0; and sleep \$delay" >> $config_file
-            
+
             for window in $windows
                 set -l parts (string split " " $window)
                 set -l idx $parts[1]

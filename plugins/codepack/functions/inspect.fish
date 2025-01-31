@@ -41,20 +41,20 @@ function inspect -a output_file
     echo "# 文件依赖关系" >>$output_file
     echo '```mermaid' >>$output_file
     echo 'graph TD' >>$output_file
-    
+
     # 分析文件依赖关系
     for file in (git ls-files)
         set extension (string lower (path extension $file))
         if contains $extension $binary_extensions
             continue
         end
-        
+
         # 检查文件大小
         set file_size (gstat -c%s $file)
         if test $file_size -gt $size_limit
             continue
         end
-        
+
         # 根据文件类型分析依赖
         switch $extension
             case .js .ts .jsx .tsx
@@ -112,7 +112,7 @@ function inspect -a output_file
         echo "- 创建时间: $file_created" >>$output_file
         echo "- 修改时间: $file_modified" >>$output_file
         echo "" >>$output_file
-        
+
         # 根据文件类型添加语言标识
         switch $extension
             case .js .jsx

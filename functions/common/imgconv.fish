@@ -19,17 +19,17 @@ function imgconv
         # 单文件模式
         set -l source_file $argv[1]
         set -l target_format (string lower $argv[2])
-        
+
         # 检查目标格式是否支持
         if not contains $target_format $supported_formats
             echo "错误: 不支持的目标格式 '$target_format'"
             return 1
         end
-        
+
         # 构建目标文件路径
         set -l filename (path change-extension '' $source_file)
         set -l target_file "$filename.$target_format"
-        
+
         echo "转换: $source_file → $target_file"
         if sips -s format $target_format $source_file --out $target_file 2>/dev/null
             echo "✓ 转换成功"
@@ -42,11 +42,11 @@ function imgconv
             echo "错误: 目录模式需要指定源格式和目标格式"
             return 1
         end
-        
+
         set -l source_dir $argv[1]
         set -l source_format (string lower $argv[2])
         set -l target_format (string lower $argv[3])
-        
+
         # 检查格式是否支持
         if not contains $source_format $supported_formats
             echo "错误: 不支持的源格式 '$source_format'"
@@ -62,7 +62,7 @@ function imgconv
             if test -f $source_file
                 set -l filename (path change-extension '' $source_file)
                 set -l target_file "$filename.$target_format"
-                
+
                 echo "转换: $source_file → $target_file"
                 if sips -s format $target_format $source_file --out $target_file 2>/dev/null
                     echo "✓ 转换成功"
