@@ -26,8 +26,19 @@ function token_count --description 'Count tokens in text files for LLM interacti
     # 检查必需的包是否安装
     set -l missing_packages
     for package in (cat $requirements_file)
-        if not python -c "import $package" 2>/dev/null
-            set -a missing_packages $package
+        # 处理python-magic特殊情况
+        if test $package = "python-magic"
+            if not python -c "import magic" 2>/dev/null
+                set -a missing_packages $package
+            end
+        else if test $package = "pdfplumber"
+            if not python -c "import pdfplumber" 2>/dev/null
+                set -a missing_packages $package
+            end
+        else
+            if not python -c "import $package" 2>/dev/null
+                set -a missing_packages $package
+            end
         end
     end
 
@@ -53,6 +64,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
     echo $result | begin
         read -l json
         echo "文件分析结果："
+        echo "文件类型: "(echo $json | string match -r '"type":\s*"([^"]*)"' | tail -n 1)
         echo "编码: "(echo $json | string match -r '"encoding":\s*"([^"]*)"' | tail -n 1)
         echo "字符数: "(echo $json | string match -r '"chars":\s*(\d+)' | tail -n 1)
         echo "单词数: "(echo $json | string match -r '"words":\s*(\d+)' | tail -n 1)

@@ -1,2 +1,4 @@
 tiktoken
 chardet
+python-magic
+pdfplumber
