@@ -45,6 +45,16 @@ function token_count --description 'Count tokens in text files for LLM interacti
     if test (count $missing_packages) -gt 0
         echo "Missing required packages: $missing_packages" >&2
         echo "Please install them using: pip install -r $requirements_file" >&2
+        
+        # 检查是否缺少python-magic
+        if contains "python-magic" $missing_packages
+            # 检查是否为macOS系统
+            if test (uname) = "Darwin"
+                echo "注意: 在macOS上，python-magic还需要安装系统依赖:" >&2
+                echo "brew install libmagic" >&2
+            end
+        end
+        
         conda deactivate
         return 1
     end
