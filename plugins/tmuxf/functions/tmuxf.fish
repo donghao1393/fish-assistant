@@ -36,6 +36,17 @@ function tmuxf --description 'Tmux session manager for fish'
     # 在函数开始处定义特殊命令列表
     set -g tmuxf_special_commands btm top htop nvtop glances
 
+    function get_last_command
+        set -l session $argv[1]
+        set -l window $argv[2]
+        set -l pane_idx $argv[3]
+
+        # 捕获pane中的内容并获取最后一个命令行
+        set -l cmd (tmux capture-pane -t "$session:$window.$pane_idx" -p -S - | rg '^\$ ' | tail -1 | string replace -r '^\$ ' '')
+        echo "Debug: get_last_command: $cmd" >&2
+        echo $cmd
+    end
+
     function get_pane_command
         set -l session $argv[1]
         set -l window $argv[2]
