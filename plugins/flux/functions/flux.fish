@@ -6,24 +6,38 @@ function flux -d "Generate images using Flux AI with common aspect ratios"
     end
 
     # 检查必要的命令
-    for cmd in md5sum jq python curl conda
+    for cmd in md5sum jq python3 curl uv
         if not command -v $cmd >/dev/null
             echo "Error: $cmd is not installed. Please install it first."
             return 1
         end
     end
 
-    # 检查flux环境是否存在
-    if not conda env list | grep -q "^bfl-flux "
-        echo "Error: bfl-flux conda environment not found
-Please create it and install required packages using:
-  conda create -n bfl-flux python=3.12
-  pip install requests"
+    # 定义虚拟环境路径
+    set -l venv_path "$SCRIPTS_DIR/fish/plugins/flux/.venv"
+
+    # 检查 flux 虚拟环境是否存在
+    if not test -d $venv_path
+        echo "Error: flux虚拟环境不存在
+请创建它并安装所需的包：
+  mkdir -p $SCRIPTS_DIR/fish/plugins/flux
+  cd $SCRIPTS_DIR/fish/plugins/flux
+  uv pip install -e ."
         return 1
     end
 
-    # 激活flux环境
-    conda activate bfl-flux
+    # 激活 flux 环境
+    set -l old_path $PATH
+    set -l old_python_path $PYTHONPATH
+    # 添加虚拟环境的 bin 目录到 PATH
+    set -gx PATH $venv_path/bin $PATH
+
+    # 确认是否使用了虚拟环境的 Python
+    set -l python_path (which python)
+    if not string match -q "*$venv_path*" $python_path
+        echo "Error: 无法激活虚拟环境"
+        return 1
+    end
 
     # 预设的宽高比选项
     set -l aspect_ratios
@@ -37,14 +51,15 @@ Please create it and install required packages using:
     set -l aspect_ratio_values "16:9" "4:3" "21:9" "9:16" "3:2" "1:1" custom
 
     # 创建保存目录
-    set -l save_dir ~/Desktop/flux
+    set -l save_dir ~/Pictures/flux
     mkdir -p $save_dir
 
     # 参数解析
     argparse h/help 'f/file=' 'p/prompt=' 's/seed=' -- $argv
     or begin
-        # 如果参数解析失败，确保切换回原环境
-        conda deactivate
+        # 如果参数解析失败，恢复PATH
+        set -gx PATH $old_path
+        set -gx PYTHONPATH $old_python_path
         return 1
     end
 
@@ -61,8 +76,9 @@ Please create it and install required packages using:
         for ratio in $aspect_ratios
             echo "  $ratio"
         end
-        # 在显示帮助后切换回原环境
-        conda deactivate
+        # 在显示帮助后恢复PATH
+        set -gx PATH $old_path
+        set -gx PYTHONPATH $old_python_path
         return 0
     end
 
@@ -74,16 +90,18 @@ Please create it and install required packages using:
     if set -q _flag_file
         if not test -f $_flag_file
             echo "Error: Prompt file does not exist: $_flag_file"
-            # 错误时切换回原环境
-            conda deactivate
+            # 错误时恢复PATH
+            set -gx PATH $old_path
+            set -gx PYTHONPATH $old_python_path
             return 1
         end
         # 读取文件内容并确保正确处理
         set prompt_content (cat $_flag_file | string collect)
         if test -z "$prompt_content"
             echo "Error: Prompt file is empty"
-            # 错误时切换回原环境
-            conda deactivate
+            # 错误时恢复PATH
+            set -gx PATH $old_path
+            set -gx PYTHONPATH $old_python_path
             return 1
         end
         set prompt_arg --prompt-file $_flag_file
@@ -98,8 +116,9 @@ Please create it and install required packages using:
         set prompt_content (read -z | string collect)
         if test -z "$prompt_content"
             echo "Error: No prompt provided"
-            # 错误时切换回原环境
-            conda deactivate
+            # 错误时恢复PATH
+            set -gx PATH $old_path
+            set -gx PYTHONPATH $old_python_path
             return 1
         end
 
@@ -150,8 +169,9 @@ Please create it and install required packages using:
         end
     else
         echo "Error: Invalid choice"
-        # 错误时切换回原环境
-        conda deactivate
+        # 错误时恢复PATH
+        set -gx PATH $old_path
+        set -gx PYTHONPATH $old_python_path
         return 1
     end
 
@@ -188,8 +208,9 @@ Please create it and install required packages using:
         echo "Error: Generation failed"
         cat $output_file
         rm -f $output_file
-        # 错误时切换回原环境
-        conda deactivate
+        # 错误时恢复PATH
+        set -gx PATH $old_path
+        set -gx PYTHONPATH $old_python_path
         return 1
     end
 
@@ -231,8 +252,6 @@ Please create it and install required packages using:
         set -l json_result (string join \n $result_content)
 
         # 从JSON结果中提取URL和seed
-        # set -l download_url (echo $json_result | string match -r '"sample"\s*:\s*"([^"]+)"' | tail -n1)
-        # set -l seed (echo $json_result | string match -r '"seed"\s*:\s*([0-9]+)' | tail -n1)
         set -l download_url (echo $json_result | jq -r '.sample')
         set -l seed (echo $json_result | jq -r '.seed')
 
@@ -251,7 +270,6 @@ Please create it and install required packages using:
 
         # 添加文件名后缀
         # 如果seed不为空，使用seed作为后缀，否则使用当前时间戳
-        # if test -n "$seed" # for the usage of string
         if test "$seed" != null # for the usage of jq
             set base_filename $base_filename.s$seed
         else
@@ -273,28 +291,32 @@ Please create it and install required packages using:
                 echo "下载失败 (状态码: $download_status)"
                 rm -f $image_file
                 rm -f $output_file
-                # 错误时切换回原环境
-                conda deactivate
+                # 错误时恢复PATH
+                set -gx PATH $old_path
+                set -gx PYTHONPATH $old_python_path
                 return 1
             end
         else
             echo "Error: Could not extract download URL from result"
             cat $output_file
             rm -f $output_file
-            # 错误时切换回原环境
-            conda deactivate
+            # 错误时恢复PATH
+            set -gx PATH $old_path
+            set -gx PYTHONPATH $old_python_path
             return 1
         end
     else
         echo "Error: Could not find complete Result section in output"
         rm -f $output_file
-        # 错误时切换回原环境
-        conda deactivate
+        # 错误时恢复PATH
+        set -gx PATH $old_path
+        set -gx PYTHONPATH $old_python_path
         return 1
     end
 
     rm -f $output_file
 
-    # 成功完成后，切换回原环境
-    conda deactivate
+    # 成功完成后，恢复PATH
+    set -gx PATH $old_path
+    set -gx PYTHONPATH $old_python_path
 end
