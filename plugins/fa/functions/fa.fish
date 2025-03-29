@@ -89,7 +89,7 @@ function _fa_plugin_add --argument-names plugin_name
     end
 
     # 创建目录结构
-    mkdir -p $plugin_dir/{functions,completions}
+    mkdir -p $plugin_dir/{functions,completions,conf.d}
 
     # 创建主函数文件
     touch $plugin_dir/functions/$plugin_name.fish
@@ -98,6 +98,7 @@ function _fa_plugin_add --argument-names plugin_name
     echo "  $plugin_dir/"
     echo "  ├─ functions/"
     echo "  │  └─ $plugin_name.fish"
+    echo "  └─ conf.d/"
     echo "  └─ completions/"
 end
 
@@ -137,6 +138,23 @@ function _fa_plugin_map --argument-names plugin_name
             end
             ln -f $f $target
             echo "创建链接: $target -> $f"
+        end
+    end
+
+    # 映射 conf.d 文件
+    set -l conf_dir $plugin_dir/conf.d
+    if test -d $conf_dir
+        for f in $conf_dir/*.fish
+            if test -f $f
+                set -l fname (basename $f)
+                set -l target $fish_config_dir/conf.d/$fname
+                if test -L $target
+                    echo "更新链接: $target"
+                    rm $target
+                end
+                ln -f $f $target
+                echo "创建链接: $target -> $f"
+            end
         end
     end
 end
@@ -182,9 +200,29 @@ function _fa_map --argument-names type file
             ln -f $source_path $target
             echo "创建链接: $target -> $source_path"
 
+        case conf.d
+            set -l source_path $base_dir/conf.d/$file
+            if not test -f $source_path
+                echo "错误: 源文件不存在: $source_path"
+                return 1
+            end
+
+            # 确保目标目录存在
+            if not test -d $fish_config_dir/conf.d
+                mkdir -p $fish_config_dir/conf.d
+            end
+
+            set -l target $fish_config_dir/conf.d/(basename $file)
+            if test -L $target
+                echo "更新链接: $target"
+                rm $target
+            end
+            ln -f $source_path $target
+            echo "创建链接: $target -> $source_path"
+
         case '*'
             echo "错误: 未知的类型 '$type'"
-            echo "可用类型: functions, completions, common, apps"
+            echo "可用类型: functions, completions, conf.d, common, apps"
             return 1
     end
 end
@@ -197,6 +235,16 @@ function _fa_list
         if test -L $f
             set -l target (readlink $f)
             echo "  $(basename $f) -> $target"
+        end
+    end
+
+    echo -e "\n配置链接:"
+    if test -d $fish_config_dir/conf.d
+        for f in $fish_config_dir/conf.d/*.fish
+            if test -L $f
+                set -l target (readlink $f)
+                echo "  $(basename $f) -> $target"
+            end
         end
     end
 
@@ -229,6 +277,16 @@ function _fa_check
         end
     end
 
+    echo -e "\n检查配置链接..."
+    if test -d $fish_config_dir/conf.d
+        for f in $fish_config_dir/conf.d/*.fish
+            if test -L $f; and not test -e $f
+                echo "  失效链接: $f -> $(readlink $f)"
+                set has_error true
+            end
+        end
+    end
+
     if test $has_error = false
         echo "所有链接正常"
     end
@@ -238,7 +296,7 @@ function _fa_clean
     set -l fish_config_dir ~/.config/fish
     set -l cleaned false
 
-    for f in $fish_config_dir/{functions,completions}/*.fish
+    for f in $fish_config_dir/{functions,completions,conf.d}/*.fish
         if test -L $f; and not test -e $f
             echo "删除失效链接: $f -> $(readlink $f)"
             rm $f
@@ -255,7 +313,7 @@ function _fa_unmap --argument-names file
     set -l fish_config_dir ~/.config/fish
     set -l found false
 
-    for dir in functions completions
+    for dir in functions completions conf.d
         set -l target $fish_config_dir/$dir/$file
         if test -L $target
             echo "删除链接: $target -> $(readlink $target)"
@@ -288,6 +346,7 @@ function _fa_help
     echo "类型 (type) 可以是:"
     echo "  functions   直接在 functions 目录下的文件"
     echo "  common     functions/common 下的通用函数"
+    echo "  conf.d     functions/conf.d 下的自动加载配置文件"
     echo "  apps       functions/apps 下的应用函数"
     echo "  completions 补全文件"
 end
