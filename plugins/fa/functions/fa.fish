@@ -1,6 +1,6 @@
 function fa --description 'Fish Assistant - manage fish functions and plugins'
     set -l fa_version "0.1.0"  # 改名为 fa_version
-    set -l base_dir ~/dev/scripts/fish
+    set -l base_dir $STUDIO_HOME/scripts/fish
     set -l fish_config_dir ~/.config/fish
 
     # 子命令解析
@@ -80,7 +80,7 @@ function fa --description 'Fish Assistant - manage fish functions and plugins'
 end
 
 function _fa_plugin_add --argument-names plugin_name
-    set -l base_dir ~/dev/scripts/fish
+    set -l base_dir $STUDIO_HOME/scripts/fish
     set -l plugin_dir $base_dir/plugins/$plugin_name
 
     if test -d $plugin_dir
@@ -102,11 +102,12 @@ function _fa_plugin_add --argument-names plugin_name
 end
 
 function _fa_plugin_map --argument-names plugin_name
-    set -l base_dir ~/dev/scripts/fish
+    set -l base_dir $STUDIO_HOME/scripts/fish
     set -l fish_config_dir ~/.config/fish
     set -l plugin_dir $base_dir/plugins/$plugin_name
 
     if not test -d $plugin_dir
+        echo $plugin_dir
         echo "错误: 插件 '$plugin_name' 不存在"
         return 1
     end
@@ -120,7 +121,7 @@ function _fa_plugin_map --argument-names plugin_name
                 echo "更新链接: $target"
                 rm $target
             end
-            ln -s $f $target
+            ln -f $f $target
             echo "创建链接: $target -> $f"
         end
     end
@@ -134,14 +135,14 @@ function _fa_plugin_map --argument-names plugin_name
                 echo "更新链接: $target"
                 rm $target
             end
-            ln -s $f $target
+            ln -f $f $target
             echo "创建链接: $target -> $f"
         end
     end
 end
 
 function _fa_map --argument-names type file
-    set -l base_dir ~/dev/scripts/fish
+    set -l base_dir $STUDIO_HOME/scripts/fish
     set -l fish_config_dir ~/.config/fish
 
     switch $type
@@ -163,7 +164,7 @@ function _fa_map --argument-names type file
                 echo "更新链接: $target"
                 rm $target
             end
-            ln -s $source_path $target
+            ln -f $source_path $target
             echo "创建链接: $target -> $source_path"
 
         case completions
@@ -178,7 +179,7 @@ function _fa_map --argument-names type file
                 echo "更新链接: $target"
                 rm $target
             end
-            ln -s $source_path $target
+            ln -f $source_path $target
             echo "创建链接: $target -> $source_path"
 
         case '*'

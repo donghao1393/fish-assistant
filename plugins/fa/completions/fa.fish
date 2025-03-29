@@ -34,7 +34,7 @@ function __fish_fa_needs_file
 end
 
 function __fish_fa_list_files --argument-names type
-    set -l base_dir ~/dev/scripts/fish
+    set -l base_dir $STUDIO_HOME/scripts/fish
     set -l dir
     switch $type
         case functions
@@ -61,7 +61,7 @@ function __fish_fa_list_files --argument-names type
 end
 
 function __fish_fa_list_plugins
-    set -l plugins_dir ~/dev/scripts/fish/plugins
+    set -l plugins_dir $STUDIO_HOME/scripts/fish/plugins
     if test -d "$plugins_dir"
         command ls -1 "$plugins_dir" 2>/dev/null
     end
