@@ -12,12 +12,12 @@ function dfm --description 'Dotfiles Manager - 管理配置文件'
     end
     
     # 解析全局选项
-    set -l options 'f/force' 'h/help'
+    set -l options 'f/force' 'h/help' 'o/only=' 'c/copy' 'n/no-backup' 'r/restore' 's/skip-git-check'
     argparse $options -- $argv
     set -l has_force_flag $status
     
     # 解析全局选项
-    set -l options 'f/force' 'h/help'
+    set -l options 'f/force' 'h/help' 'o/only=' 'c/copy' 'n/no-backup' 'r/restore' 's/skip-git-check'
     argparse $options -- $argv
     
     if set -q _flag_help
@@ -30,41 +30,59 @@ function dfm --description 'Dotfiles Manager - 管理配置文件'
     
     switch $cmd
         case new
+            set -l args
             if set -q _flag_force
-                _dfm_new --force $argv
-            else
-                _dfm_new $argv
+                set -a args --force
             end
+            if set -q _flag_copy
+                set -a args --copy
+            end
+            if set -q _flag_only
+                set -a args --only $_flag_only
+            end
+            _dfm_new $args $argv
         case link
+            set -l args
             if set -q _flag_force
-                _dfm_link --force $argv
-            else
-                _dfm_link $argv
+                set -a args --force
             end
+            if set -q _flag_no_backup
+                set -a args --no-backup
+            end
+            if set -q _flag_only
+                set -a args --only $_flag_only
+            end
+            _dfm_link $args $argv
         case unlink
+            set -l args
             if set -q _flag_force
-                _dfm_unlink --force $argv
-            else
-                _dfm_unlink $argv
+                set -a args --force
             end
+            if set -q _flag_restore
+                set -a args --restore
+            end
+            _dfm_unlink $args $argv
         case sync
+            set -l args
             if set -q _flag_force
-                _dfm_sync --force $argv
-            else
-                _dfm_sync $argv
+                set -a args --force
             end
+            _dfm_sync $args $argv
         case status
+            set -l args
             if set -q _flag_force
-                _dfm_status --force $argv
-            else
-                _dfm_status $argv
+                set -a args --force
             end
+            _dfm_status $args $argv
         case init
+            set -l args
             if set -q _flag_force
-                _dfm_init --force $argv
-            else
-                _dfm_init $argv
+                set -a args --force
             end
+            if set -q _flag_skip_git_check
+                set -a args --skip-git-check
+            end
+            _dfm_init $args $argv
         case help
             _dfm_help
         case version
@@ -80,7 +98,7 @@ end
 function _dfm_new --argument-names app
     # set -l repo_path (realpath (dirname (status filename)))
     set -l repo_path $DOTFILES_PATH
-    set -l options 'f/force' 'c/copy'
+    set -l options 'f/force' 'c/copy' 'o/only='
     argparse $options -- $argv
     
     if test -z "$app"
@@ -140,14 +158,43 @@ function _dfm_new --argument-names app
     end
     
     # 创建链接
-    _dfm_create_link $repo_path_full $target_path
+    if set -q _flag_only
+        set -l only_files (string split , $_flag_only)
+        
+        # 如果目标是目录，则创建目录
+        if test -d $repo_path_full
+            for file in $only_files
+                set source_file "$repo_path_full/$file"
+                set target_file "$target_path/$file"
+                
+                # 确保父目录存在
+                set parent_dir (dirname $target_file)
+                if not test -d $parent_dir
+                    mkdir -p $parent_dir
+                end
+                
+                # 创建链接
+                if test -e $source_file
+                    _dfm_create_link $source_file $target_file
+                else
+                    echo "警告: $source_file 不存在，已跳过"
+                end
+            end
+        else
+            # 单文件情况
+            _dfm_create_link $repo_path_full $target_path
+        end
+    else
+        # 常规链接
+        _dfm_create_link $repo_path_full $target_path
+    end
 end
 
 # 链接已有配置
 function _dfm_link --argument-names app
     # set -l repo_path (realpath (dirname (status filename)))
     set -l repo_path $DOTFILES_PATH
-    set -l options 'f/force' 'n/no-backup'
+    set -l options 'f/force' 'n/no-backup' 'o/only='
     argparse $options -- $argv
     
     set -l app $argv[1]
@@ -174,7 +221,7 @@ function _dfm_link --argument-names app
     end
     
     # 检查目标是否已存在
-    if test -e $repo_path_full
+    if test -e $repo_path_full; and not set -q _flag_only
         if not set -q _flag_force
             echo "错误: $repo_path_full 已存在，使用 --force 覆盖"
             return 1
@@ -201,21 +248,71 @@ function _dfm_link --argument-names app
     end
     
     # 复制文件到仓库
-    if test -d $target_path
-        mkdir -p $repo_path_full
-        cp -r $target_path/* $repo_path_full/ 2>/dev/null
-        echo "复制配置: $target_path/* -> $repo_path_full/"
+    if set -q _flag_only
+        set -l only_files (string split , $_flag_only)
+        
+        if test -d $target_path
+            # 确保仓库目录存在，但不删除已存在的文件
+            mkdir -p $repo_path_full
+            
+            for file in $only_files
+                set source_file "$target_path/$file"
+                set dest_file "$repo_path_full/$file"
+                
+                if test -e $source_file
+                    # 确保目标父目录存在
+                    set parent_dir (dirname $dest_file)
+                    if not test -d $parent_dir
+                        mkdir -p $parent_dir
+                    end
+                    
+                    # 复制文件
+                    if test -d $source_file
+                        cp -r $source_file $dest_file
+                    else
+                        cp $source_file $dest_file
+                    end
+                    echo "复制配置: $source_file -> $dest_file"
+                    
+                    # 删除原始文件
+                    rm -rf $source_file
+                    
+                    # 创建链接
+                    _dfm_create_link $dest_file $source_file
+                else
+                    echo "警告: $source_file 不存在，已跳过"
+                end
+            end
+        else
+            # 单文件情况
+            mkdir -p (dirname $repo_path_full)
+            cp $target_path $repo_path_full
+            echo "复制配置: $target_path -> $repo_path_full"
+            
+            # 删除原始文件
+            rm -rf $target_path
+            
+            # 创建链接
+            _dfm_create_link $repo_path_full $target_path
+        end
     else
-        mkdir -p (dirname $repo_path_full)
-        cp $target_path $repo_path_full
-        echo "复制配置: $target_path -> $repo_path_full"
+        # 常规复制和链接
+        if test -d $target_path
+            mkdir -p $repo_path_full
+            cp -r $target_path/* $repo_path_full/ 2>/dev/null
+            echo "复制配置: $target_path/* -> $repo_path_full/"
+        else
+            mkdir -p (dirname $repo_path_full)
+            cp $target_path $repo_path_full
+            echo "复制配置: $target_path -> $repo_path_full"
+        end
+        
+        # 删除原始文件
+        rm -rf $target_path
+        
+        # 创建链接
+        _dfm_create_link $repo_path_full $target_path
     end
-    
-    # 删除原始文件
-    rm -rf $target_path
-    
-    # 创建链接
-    _dfm_create_link $repo_path_full $target_path
 end
 
 # 取消链接
@@ -504,8 +601,10 @@ function _dfm_help
     echo "命令:"
     echo "  new <app>      创建新的配置目录并设置链接"
     echo "                 选项: --copy (-c) 复制现有配置"
+    echo "                 选项: --only (-o) 指定要管理的文件列表，逗号分隔"
     echo "  link <app>     将已有配置移至仓库并创建链接"
     echo "                 选项: --no-backup (-n) 不创建备份"
+    echo "                 选项: --only (-o) 指定要管理的文件列表，逗号分隔"
     echo "  unlink <app>   删除链接"
     echo "                 选项: --restore (-r) 尝试恢复备份"
     echo "  sync [app]     同步所有或指定配置"
@@ -524,6 +623,7 @@ function _dfm_help
     echo "  dfm new zellij --copy    # 创建并复制现有配置"
     echo "  dfm link starship        # 链接现有starship配置"
     echo "  dfm link .gitconfig      # 链接家目录下的.gitconfig"
+    echo "  dfm link fish --only \"config.fish,fish_variables\"  # 仅链接特定文件"
     echo "  dfm unlink zellij        # 取消zellij配置链接"
     echo "  dfm sync                 # 同步所有配置"
     echo "  dfm status               # 检查所有配置状态"
