@@ -489,51 +489,123 @@ function _dfm_status
         set -a checked_items $dir_name
         set target_path "$HOME/.config/$dir_name"
         
-        if test -L $target_path
-            set link_target (readlink $target_path)
-            if test "$link_target" = "$config_dir"
-                echo "  ✓ $target_path -> $link_target"
-            else
-                echo "  ✗ $target_path -> $link_target (应指向 $config_dir)"
-            end
-        else if test -e $target_path
-            echo "  ✗ $target_path 存在但不是链接"
-        else
-            echo "  ✗ $target_path 不存在"
-        end
-    end
-    
-    # 检查.config目录下的文件
-    for config_file in $repo_path/.config/*
-        if test -f $config_file
-            set file_name (basename $config_file)
-            if not contains $file_name $checked_items
-                set target_path "$HOME/.config/$file_name"
-                
-                if test -L $target_path
-                    set link_target (readlink $target_path)
-                    if test "$link_target" = "$config_file"
-                        echo "  ✓ $target_path -> $link_target"
-                    else
-                        echo "  ✗ $target_path -> $link_target (应指向 $config_file)"
-                    end
-                else if test -e $target_path
-                    echo "  ✗ $target_path 存在但不是链接"
+        if test -d $config_dir
+            # 检查整个目录链接
+            if test -L $target_path
+                set link_target (readlink $target_path)
+                if test "$link_target" = "$config_dir"
+                    echo "  ✓ $target_path -> $link_target"
                 else
-                    echo "  ✗ $target_path 不存在"
+                    echo "  ✗ $target_path -> $link_target (应指向 $config_dir)"
                 end
+            else if test -d $target_path
+                # 检查目录中的单个文件是否已经链接
+                set -l has_linked_files 0
+                set -l total_files 0
+                set -l linked_files 0
+                
+                for repo_file in $config_dir/*
+                    if test -f $repo_file
+                        set file_name (basename $repo_file)
+                        set file_target_path "$target_path/$file_name"
+                        set total_files (math $total_files + 1)
+                        
+                        if test -L $file_target_path
+                            set has_linked_files 1
+                            set linked_files (math $linked_files + 1)
+                            set link_target (readlink $file_target_path)
+                            if test "$link_target" = "$repo_file"
+                                echo "  ✓ $file_target_path -> $link_target"
+                            else
+                                echo "  ✗ $file_target_path -> $link_target (应指向 $repo_file)"
+                            end
+                        else if test -e $file_target_path
+                            echo "  ✗ $file_target_path 存在但不是链接"
+                        else
+                            echo "  ✗ $file_target_path 不存在"
+                        end
+                    end
+                end
+                
+                if test $has_linked_files -eq 0
+                    echo "  ✗ $target_path 存在但没有链接文件"
+                else if test $linked_files -lt $total_files
+                    echo "  ✓ $target_path 有部分文件被链接 ($linked_files/$total_files)"
+                end
+            else
+                echo "  ✗ $target_path 不存在"
+            end
+        else if test -f $config_dir
+            # 处理.config目录下的单个文件
+            if test -L $target_path
+                set link_target (readlink $target_path)
+                if test "$link_target" = "$config_dir"
+                    echo "  ✓ $target_path -> $link_target"
+                else
+                    echo "  ✗ $target_path -> $link_target (应指向 $config_dir)"
+                end
+            else if test -e $target_path
+                echo "  ✗ $target_path 存在但不是链接"
+            else
+                echo "  ✗ $target_path 不存在"
             end
         end
     end
     
     # 检查home目录
     echo "检查家目录文件:"
-    for home_item in $repo_path/home/.*
+    for home_item in $repo_path/home/*
         set item_name (basename $home_item)
-        # 跳过.和..
-        if test "$item_name" != "." -a "$item_name" != ".."
-            set target_path "$HOME/$item_name"
-            
+        set target_path "$HOME/$item_name"
+        
+        if test -d $home_item
+            # 检查整个目录链接
+            if test -L $target_path
+                set link_target (readlink $target_path)
+                if test "$link_target" = "$home_item"
+                    echo "  ✓ $target_path -> $link_target"
+                else
+                    echo "  ✗ $target_path -> $link_target (应指向 $home_item)"
+                end
+            else if test -d $target_path
+                # 检查目录中的单个文件是否已经链接
+                set -l has_linked_files 0
+                set -l total_files 0
+                set -l linked_files 0
+                
+                for repo_file in $home_item/*
+                    if test -f $repo_file
+                        set file_name (basename $repo_file)
+                        set file_target_path "$target_path/$file_name"
+                        set total_files (math $total_files + 1)
+                        
+                        if test -L $file_target_path
+                            set has_linked_files 1
+                            set linked_files (math $linked_files + 1)
+                            set link_target (readlink $file_target_path)
+                            if test "$link_target" = "$repo_file"
+                                echo "  ✓ $file_target_path -> $link_target"
+                            else
+                                echo "  ✗ $file_target_path -> $link_target (应指向 $repo_file)"
+                            end
+                        else if test -e $file_target_path
+                            echo "  ✗ $file_target_path 存在但不是链接"
+                        else
+                            echo "  ✗ $file_target_path 不存在"
+                        end
+                    end
+                end
+                
+                if test $has_linked_files -eq 0
+                    echo "  ✗ $target_path 存在但没有链接文件"
+                else if test $linked_files -lt $total_files
+                    echo "  ✓ $target_path 有部分文件被链接 ($linked_files/$total_files)"
+                end
+            else
+                echo "  ✗ $target_path 不存在"
+            end
+        else if test -f $home_item
+            # 处理家目录下的单个文件
             if test -L $target_path
                 set link_target (readlink $target_path)
                 if test "$link_target" = "$home_item"
@@ -545,6 +617,77 @@ function _dfm_status
                 echo "  ✗ $target_path 存在但不是链接"
             else
                 echo "  ✗ $target_path 不存在"
+            end
+        end
+    end
+    
+    # 检查家目录下的隐藏文件
+    for home_item in $repo_path/home/.*
+        set item_name (basename $home_item)
+        # 跳过.和..
+        if test "$item_name" != "." -a "$item_name" != ".."
+            set target_path "$HOME/$item_name"
+            
+            if test -d $home_item
+                # 检查整个目录链接
+                if test -L $target_path
+                    set link_target (readlink $target_path)
+                    if test "$link_target" = "$home_item"
+                        echo "  ✓ $target_path -> $link_target"
+                    else
+                        echo "  ✗ $target_path -> $link_target (应指向 $home_item)"
+                    end
+                else if test -d $target_path
+                    # 检查目录中的单个文件是否已经链接
+                    set -l has_linked_files 0
+                    set -l total_files 0
+                    set -l linked_files 0
+                    
+                    for repo_file in $home_item/*
+                        if test -f $repo_file
+                            set file_name (basename $repo_file)
+                            set file_target_path "$target_path/$file_name"
+                            set total_files (math $total_files + 1)
+                            
+                            if test -L $file_target_path
+                                set has_linked_files 1
+                                set linked_files (math $linked_files + 1)
+                                set link_target (readlink $file_target_path)
+                                if test "$link_target" = "$repo_file"
+                                    echo "  ✓ $file_target_path -> $link_target"
+                                else
+                                    echo "  ✗ $file_target_path -> $link_target (应指向 $repo_file)"
+                                end
+                            else if test -e $file_target_path
+                                echo "  ✗ $file_target_path 存在但不是链接"
+                            else
+                                echo "  ✗ $file_target_path 不存在"
+                            end
+                        end
+                    end
+                    
+                    if test $has_linked_files -eq 0
+                        echo "  ✗ $target_path 存在但没有链接文件"
+                    else if test $linked_files -lt $total_files
+                        echo "  ✓ $target_path 有部分文件被链接 ($linked_files/$total_files)"
+                    end
+                else
+                    echo "  ✗ $target_path 不存在"
+                end
+            else if test -f $home_item
+                # 处理家目录下的单个文件
+                if test -L $target_path
+                    set link_target (readlink $target_path)
+                    if test "$link_target" = "$home_item"
+                        echo "  ✓ $target_path -> $link_target"
+                    else
+                        echo "  ✗ $target_path -> $link_target (应指向 $home_item)"
+                    end
+                else if test -e $target_path
+                    echo "  ✗ $target_path 存在但不是链接"
+                else
+                    echo "  ✗ $target_path 不存在"
+                end
             end
         end
     end
