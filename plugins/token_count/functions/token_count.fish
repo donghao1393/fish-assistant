@@ -176,14 +176,18 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
     # 打印表格标题
     echo "文件统计表格："
+    
+    # 设置格式化字符串
+    set -l format_str "%-"$filename_width"s  %-"$type_width"s  %-"$encoding_width"s  %-"$chars_width"s  %-"$words_width"s  %-"$tokens_width"s  %-"$size_width"s"
 
-    # 打印表头
-    set -l header_format "%-"$filename_width"s  %-"$type_width"s  %-"$encoding_width"s  %-"$chars_width"s  %-"$words_width"s  %-"$tokens_width"s  %-"$size_width"s"
-    printf "$header_format\n" "文件" "类型" "编码" "字符数" "单词数" "Token数" "大小"
+    # 使用英文标题避免中文字符宽度问题
+    printf "$format_str\n" "FILE" "TYPE" "ENCODING" "CHARS" "WORDS" "TOKENS" "SIZE"
+    
+    # 在下方单独打印中文标题说明
+    echo "说明: FILE=文件, TYPE=类型, ENCODING=编码, CHARS=字符数, WORDS=单词数, TOKENS=Token数, SIZE=大小"
 
     # 打印分隔线
-    set -l separator_format "%-"$filename_width"s  %-"$type_width"s  %-"$encoding_width"s  %-"$chars_width"s  %-"$words_width"s  %-"$tokens_width"s  %-"$size_width"s"
-    printf "$separator_format\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
+    printf "$format_str\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
 
     # 打印每个文件的数据行
     for i in (seq 1 $file_count)
@@ -210,7 +214,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_size (_human_readable_size $size)
         end
         
-        printf "$header_format\n" $filename $filetype $fileencoding $display_chars $display_words $display_tokens $display_size
+        printf "$format_str\n" $filename $filetype $fileencoding $display_chars $display_words $display_tokens $display_size
     end
 
     # 准备总计行数据
@@ -228,10 +232,10 @@ function token_count --description 'Count tokens in text files for LLM interacti
     end
 
     # 打印分隔线
-    printf "$separator_format\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
+    printf "$format_str\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
     
     # 打印总计行
-    printf "$header_format\n" $total_text "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
+    printf "$format_str\n" $total_text "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
 end
 
 # 辅助函数：转换人类可读的数字
