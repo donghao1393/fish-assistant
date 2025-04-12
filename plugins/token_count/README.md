@@ -58,23 +58,38 @@ fish install.fish
 ## 使用方法
 
 ```bash
-token_count <file_path>
+token_count <file_path> [file_path...]
 ```
 
 示例：
 
 ```bash
-token_count document.txt   # 处理文本文件
-token_count document.pdf   # 处理PDF文件
+token_count document.txt                 # 处理单个文本文件
+token_count document.pdf                 # 处理单个PDF文件
+token_count *.md                         # 处理所有Markdown文件
+token_count document1.txt document2.txt  # 处理多个指定文件
 ```
 
-## 输出示例
+### 单文件输出示例
 
 ```
 文件分析结果：
-文件类型: application/pdf
-编码: pdf
+文件类型: text/plain
+编码: utf-8
 字符数: 12345
 单词数: 2000
 Token数: 2500
 文件大小: 98765 bytes
+```
+
+### 多文件输出示例
+
+```
+文件统计表格：
+文件	类型	编码	字符数	单词数	Token数	大小(bytes)
+----	----	----	-------	-------	-------	-----------
+file1.txt	text/plain	utf-8	1000	200	300	1500
+file2.txt	text/plain	utf-8	2000	400	600	3000
+----	----	----	-------	-------	-------	-----------
+总计(2文件)			3000	600	900	4500
+```
