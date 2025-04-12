@@ -281,12 +281,22 @@ function token_count --description 'Count tokens in text files for LLM interacti
     end
     
     # 用awk处理表格输出
-    echo $table_data | awk -v file_count=$file_count \
-                          -v total_chars=$display_total_chars \
-                          -v total_words=$display_total_words \
-                          -v total_tokens=$display_total_tokens \
-                          -v total_size="$display_total_size" \
-                          -F "\t" $awk_script
+    # 将数据写入临时文件 - 每行一个文件记录
+    set -l temp_file (mktemp)
+    for line in $table_data
+        echo $line >> $temp_file
+    end
+
+    # 用awk处理数据
+    awk -v file_count=$file_count \
+        -v total_chars=$display_total_chars \
+        -v total_words=$display_total_words \
+        -v total_tokens=$display_total_tokens \
+        -v total_size="$display_total_size" \
+        -F "\t" $awk_script $temp_file
+        
+    # 清理临时文件
+    rm $temp_file
 end
 
 # 辅助函数：转换人类可读的数字
