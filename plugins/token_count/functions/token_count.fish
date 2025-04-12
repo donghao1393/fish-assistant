@@ -1,72 +1,51 @@
 function token_count --description 'Count tokens in text files for LLM interaction'
-    set -l script_dir (dirname (dirname (realpath (status filename))))
-    set -l conda_env token_count
-    set -l requirements_file $script_dir/requirements.txt
-    set -l counter_script $script_dir/token_counter.py
-
     if test (count $argv) -eq 0
         echo "Usage: token_count <file_path>" >&2
         return 1
     end
 
-    if not test -f $argv[1]
-        echo "Error: File not found: $argv[1]" >&2
+    set -l script_dir $SCRIPTS_DIR/fish/plugins/token_count
+    set -l counter_script $script_dir/token_counter.py
+    set -l venv_dir $script_dir/.venv
+    set -l file_path (realpath $argv[1])
+
+    if not test -f "$file_path"
+        echo "Error: 文件不存在: $file_path" >&2
         return 1
     end
 
-    # 激活 conda 环境
-    conda activate $conda_env
+    # 检查虚拟环境是否存在
+    if not test -d $venv_dir
+        echo "虚拟环境不存在，正在初始化..." >&2
+        pushd $script_dir
+        fish install.fish
+        popd
 
-    # 检查是否成功激活
-    if test $status -ne 0
-        echo "Error: Failed to activate conda environment: $conda_env" >&2
-        return 1
-    end
-
-    # 检查必需的包是否安装
-    set -l missing_packages
-    for package in (cat $requirements_file)
-        # 处理python-magic特殊情况
-        if test $package = "python-magic"
-            if not python -c "import magic" 2>/dev/null
-                set -a missing_packages $package
-            end
-        else if test $package = "pdfplumber"
-            if not python -c "import pdfplumber" 2>/dev/null
-                set -a missing_packages $package
-            end
-        else
-            if not python -c "import $package" 2>/dev/null
-                set -a missing_packages $package
-            end
+        if test $status -ne 0
+            echo "Error: 初始化虚拟环境失败" >&2
+            return 1
         end
     end
 
-    if test (count $missing_packages) -gt 0
-        echo "Missing required packages: $missing_packages" >&2
-        echo "Please install them using: pip install -r $requirements_file" >&2
-        
-        # 检查是否缺少python-magic
-        if contains "python-magic" $missing_packages
-            # 检查是否为macOS系统
-            if test (uname) = "Darwin"
-                echo "注意: 在macOS上，python-magic还需要安装系统依赖:" >&2
-                echo "brew install libmagic" >&2
-            end
-        end
-        
-        conda deactivate
+    # 检查系统依赖
+    if test (uname) = Darwin; and not command -q brew
+        echo "Error: 需要安装 Homebrew 以便安装 libmagic" >&2
         return 1
     end
 
-    # 运行 Python 脚本并解析结果
-    set -l result (python $counter_script $argv[1])
+    if not test -f /usr/local/lib/libmagic.dylib; and not test -f /opt/homebrew/lib/libmagic.dylib
+        echo "注意: 安装 libmagic 系统依赖..." >&2
+        brew install libmagic
+    end
+
+    # 使用 uv 运行 Python 脚本并解析结果
+    pushd $script_dir
+    set -l result (uv run $counter_script $file_path)
     set -l status_code $status
-
-    # 恢复 conda 环境
-    conda deactivate
+    popd
 
     if test $status_code -ne 0
+        echo "Error: 运行脚本失败" >&2
         return 1
     end
 

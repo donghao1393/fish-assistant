@@ -38,25 +38,22 @@ sudo yum install file-devel
 
 ## 安装
 
-1. 创建conda环境（推荐）：
+自动安装（推荐）：
 
 ```bash
-conda create -n token_count python=3.9
-conda activate token_count
+# 首次使用token_count命令时会自动安装
+token_count 文件路径
 ```
 
-2. 安装依赖：
+手动安装：
 
 ```bash
-pip install -r requirements.txt
+# 在插件目录下运行安装脚本
+cd /path/to/token_count
+fish install.fish
 ```
 
-3. 安装系统依赖（如果需要）：
-
-```bash
-# macOS
-brew install libmagic
-```
+此安装脚本使用uv创建Python虚拟环境并安装所有依赖。
 
 ## 使用方法
 
