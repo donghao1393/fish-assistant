@@ -51,7 +51,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
     set -l total_size 0
     set -l file_count 0
     
-    # 保存最后一个文件的详细信息(用于单文件显示)
+    # 用于单文件显示的变量
     set -l last_file ""
     set -l last_type ""
     set -l last_encoding ""
@@ -104,7 +104,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set total_size (math $total_size + $size)
         set file_count (math $file_count + 1)
         
-        # 使用数组存储数据而不是制表符分隔
+        # 存储结果
         set -a file_results $file
         set -a file_results $type
         set -a file_results $encoding
@@ -146,98 +146,46 @@ function token_count --description 'Count tokens in text files for LLM interacti
         return 0
     end
 
-    # 多文件模式：使用 awk 输出表格
-    set -l awk_script '
-    BEGIN {
-        # 设置列标题
-        titles[1] = "文件"; 
-        titles[2] = "类型"; 
-        titles[3] = "编码"; 
-        titles[4] = "字符数"; 
-        titles[5] = "单词数"; 
-        titles[6] = "Token数"; 
-        titles[7] = "大小";
+    # 多文件模式: 直接用 Fish 处理表格
+
+    # 首先计算每列所需的宽度
+    set -l filename_width 20  # 文件名列的最小宽度
+    set -l type_width 12      # 类型列的最小宽度
+    set -l encoding_width 8   # 编码列的最小宽度
+    set -l chars_width 10     # 字符数列的最小宽度
+    set -l words_width 10     # 单词数列的最小宽度
+    set -l tokens_width 10    # Token数列的最小宽度
+    set -l size_width 15      # 大小列的最小宽度
+
+    # 计算总计行的文本宽度
+    set -l total_text "总计($file_count文件)"
+    if test (string length $total_text) -gt $filename_width
+        set filename_width (string length $total_text)
+    end
+
+    # 检查每个文件名长度，更新列宽
+    for i in (seq 1 $file_count)
+        set -l idx (math "($i - 1) * 7 + 1")
+        set -l filename (basename $file_results[$idx])
+        set -l name_len (string length $filename)
         
-        # 初始化列宽度
-        widths[1] = length(titles[1]);
-        widths[2] = length(titles[2]);
-        widths[3] = length(titles[3]);
-        widths[4] = length(titles[4]);
-        widths[5] = length(titles[5]);
-        widths[6] = length(titles[6]);
-        widths[7] = length(titles[7]);
-        
-        # 设置列数
-        num_cols = 7;
-        
-        # 设置总计行
-        total_label = "总计(" file_count "文件)";
-        if (length(total_label) > widths[1]) widths[1] = length(total_label);
-    }
-    
-    # 处理每一行数据
-    {
-        # 存储数据
-        data[NR, 1] = $1;
-        data[NR, 2] = $2;
-        data[NR, 3] = $3;
-        data[NR, 4] = $4;
-        data[NR, 5] = $5;
-        data[NR, 6] = $6;
-        data[NR, 7] = $7;
-        
-        # 更新列宽度
-        for (i = 1; i <= num_cols; i++) {
-            if (length($i) > widths[i]) widths[i] = length($i);
-        }
-    }
-    
-    END {
-        # 打印表格标题
-        printf "文件统计表格：\n";
-        
-        # 打印列标题
-        for (i = 1; i <= num_cols; i++) {
-            printf "%-" widths[i] "s  ", titles[i];
-        }
-        printf "\n";
-        
-        # 打印分隔线
-        for (i = 1; i <= num_cols; i++) {
-            for (j = 1; j <= widths[i]; j++) printf "-";
-            printf "  ";
-        }
-        printf "\n";
-        
-        # 打印数据行
-        for (i = 1; i <= NR; i++) {
-            for (j = 1; j <= num_cols; j++) {
-                printf "%-" widths[j] "s  ", data[i, j];
-            }
-            printf "\n";
-        }
-        
-        # 打印分隔线
-        for (i = 1; i <= num_cols; i++) {
-            for (j = 1; j <= widths[i]; j++) printf "-";
-            printf "  ";
-        }
-        printf "\n";
-        
-        # 打印总计行
-        printf "%-" widths[1] "s  ", total_label;
-        printf "%-" widths[2] "s  ", "";
-        printf "%-" widths[3] "s  ", "";
-        printf "%-" widths[4] "s  ", total_chars;
-        printf "%-" widths[5] "s  ", total_words;
-        printf "%-" widths[6] "s  ", total_tokens;
-        printf "%-" widths[7] "s  ", total_size;
-        printf "\n";
-    }
-    '
-    
-    # 准备表格数据
-    set -l table_data
+        if test $name_len -gt $filename_width
+            set filename_width $name_len
+        end
+    end
+
+    # 打印表格标题
+    echo "文件统计表格："
+
+    # 打印表头
+    set -l header_format "%-"$filename_width"s  %-"$type_width"s  %-"$encoding_width"s  %-"$chars_width"s  %-"$words_width"s  %-"$tokens_width"s  %-"$size_width"s"
+    printf "$header_format\n" "文件" "类型" "编码" "字符数" "单词数" "Token数" "大小"
+
+    # 打印分隔线
+    set -l separator_format "%-"$filename_width"s  %-"$type_width"s  %-"$encoding_width"s  %-"$chars_width"s  %-"$words_width"s  %-"$tokens_width"s  %-"$size_width"s"
+    printf "$separator_format\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
+
+    # 打印每个文件的数据行
     for i in (seq 1 $file_count)
         set -l idx (math "($i - 1) * 7 + 1")
         set -l filename (basename $file_results[$idx])
@@ -262,11 +210,10 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_size (_human_readable_size $size)
         end
         
-        # 添加到表格数据
-        set -a table_data "$filename\t$filetype\t$fileencoding\t$display_chars\t$display_words\t$display_tokens\t$display_size"
+        printf "$header_format\n" $filename $filetype $fileencoding $display_chars $display_words $display_tokens $display_size
     end
-    
-    # 准备总计行
+
+    # 准备总计行数据
     set -l display_total_chars $total_chars
     set -l display_total_words $total_words
     set -l display_total_tokens $total_tokens
@@ -279,24 +226,12 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set display_total_tokens (_human_readable_number $total_tokens)
         set display_total_size (_human_readable_size $total_size)
     end
-    
-    # 用awk处理表格输出
-    # 将数据写入临时文件 - 每行一个文件记录
-    set -l temp_file (mktemp)
-    for line in $table_data
-        echo $line >> $temp_file
-    end
 
-    # 用awk处理数据
-    awk -v file_count=$file_count \
-        -v total_chars=$display_total_chars \
-        -v total_words=$display_total_words \
-        -v total_tokens=$display_total_tokens \
-        -v total_size="$display_total_size" \
-        -F "\t" $awk_script $temp_file
-        
-    # 清理临时文件
-    rm $temp_file
+    # 打印分隔线
+    printf "$separator_format\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
+    
+    # 打印总计行
+    printf "$header_format\n" $total_text "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
 end
 
 # 辅助函数：转换人类可读的数字
