@@ -44,12 +44,21 @@ function token_count --description 'Count tokens in text files for LLM interacti
     end
 
     # 初始化结果记录
-    set -l results 
+    set -l file_results
     set -l total_chars 0
     set -l total_words 0
     set -l total_tokens 0
     set -l total_size 0
     set -l file_count 0
+    
+    # 保存最后一个文件的详细信息(用于单文件显示)
+    set -l last_file ""
+    set -l last_type ""
+    set -l last_encoding ""
+    set -l last_chars 0
+    set -l last_words 0
+    set -l last_tokens 0
+    set -l last_size 0
 
     # 处理每个文件
     for file in $files
@@ -72,13 +81,21 @@ function token_count --description 'Count tokens in text files for LLM interacti
         end
 
         # 解析JSON结果
-        set -l json $result
-        set -l type (echo $json | string match -r '"type":\s*"([^"]*)"' | tail -n 1)
-        set -l encoding (echo $json | string match -r '"encoding":\s*"([^"]*)"' | tail -n 1)
-        set -l chars (echo $json | string match -r '"chars":\s*(\d+)' | tail -n 1)
-        set -l words (echo $json | string match -r '"words":\s*(\d+)' | tail -n 1)
-        set -l tokens (echo $json | string match -r '"tokens":\s*(\d+)' | tail -n 1)
-        set -l size (echo $json | string match -r '"size":\s*(\d+)' | tail -n 1)
+        set -l type (echo $result | string match -r '"type":\s*"([^"]*)"' | tail -n 1)
+        set -l encoding (echo $result | string match -r '"encoding":\s*"([^"]*)"' | tail -n 1)
+        set -l chars (echo $result | string match -r '"chars":\s*(\d+)' | tail -n 1)
+        set -l words (echo $result | string match -r '"words":\s*(\d+)' | tail -n 1)
+        set -l tokens (echo $result | string match -r '"tokens":\s*(\d+)' | tail -n 1)
+        set -l size (echo $result | string match -r '"size":\s*(\d+)' | tail -n 1)
+        
+        # 保存最后一个处理的文件信息(用于单文件模式)
+        set last_file $file
+        set last_type $type
+        set last_encoding $encoding
+        set last_chars $chars
+        set last_words $words
+        set last_tokens $tokens
+        set last_size $size
 
         # 增加总计
         set total_chars (math $total_chars + $chars)
@@ -86,9 +103,15 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set total_tokens (math $total_tokens + $tokens)
         set total_size (math $total_size + $size)
         set file_count (math $file_count + 1)
-
-        # 记录结果
-        set -a results "$file\t$type\t$encoding\t$chars\t$words\t$tokens\t$size"
+        
+        # 使用数组存储数据而不是制表符分隔
+        set -a file_results $file
+        set -a file_results $type
+        set -a file_results $encoding
+        set -a file_results $chars
+        set -a file_results $words
+        set -a file_results $tokens
+        set -a file_results $size
     end
 
     # 没有有效文件
@@ -99,10 +122,53 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
     # 单文件模式
     if test $file_count -eq 1; and test $is_multiple -eq 0
+        set -l display_chars $last_chars
+        set -l display_words $last_words
+        set -l display_tokens $last_tokens
+        set -l display_size "$last_size bytes"
+        
+        # 人类可读格式
+        if set -q _flag_human_readable
+            set display_chars (_human_readable_number $last_chars)
+            set display_words (_human_readable_number $last_words)
+            set display_tokens (_human_readable_number $last_tokens)
+            set display_size (_human_readable_size $last_size)
+        end
+        
+        echo "文件分析结果："
+        echo "文件: $last_file"
+        echo "文件类型: $last_type"
+        echo "编码: $last_encoding"
+        echo "字符数: $display_chars"
+        echo "单词数: $display_words"
+        echo "Token数: $display_tokens"
+        echo "文件大小: $display_size"
+        return 0
+    end
+
+    # 多文件模式：输出表格
+    echo "文件统计表格："
+    
+    # 表头
+    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "文件" "类型" "编码" "字符数" "单词数" "Token数" "大小"
+    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "------------------------------" "---------------" "--------" "------------" "------------" "------------" "---------------"
+    
+    # 打印每个文件的结果
+    for i in (seq 1 $file_count)
+        set -l idx (math "($i - 1) * 7 + 1")
+        set -l filename (basename $file_results[$idx])
+        set -l filetype $file_results[(math $idx + 1)]
+        set -l fileencoding $file_results[(math $idx + 2)]
+        set -l chars $file_results[(math $idx + 3)]
+        set -l words $file_results[(math $idx + 4)]
+        set -l tokens $file_results[(math $idx + 5)]
+        set -l size $file_results[(math $idx + 6)]
+        
+        # 准备显示数据
         set -l display_chars $chars
         set -l display_words $words
         set -l display_tokens $tokens
-        set -l display_size $size
+        set -l display_size "$size bytes"
         
         # 人类可读格式
         if set -q _flag_human_readable
@@ -112,73 +178,30 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_size (_human_readable_size $size)
         end
         
-        echo "文件分析结果："
-        echo "文件: $files[1]"
-        echo "文件类型: $type"
-        echo "编码: $encoding"
-        echo "字符数: $display_chars"
-        echo "单词数: $display_words"
-        echo "Token数: $display_tokens"
-        echo "文件大小: $display_size"
-        return 0
+        printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" $filename $filetype $fileencoding $display_chars $display_words $display_tokens $display_size
     end
-
-    # 多文件模式：编译人类可读的结果
-    set -l display_results
+    
+    # 准备显示的总计
     set -l display_total_chars $total_chars
     set -l display_total_words $total_words
     set -l display_total_tokens $total_tokens
-    set -l display_total_size $total_size
+    set -l display_total_size "$total_size bytes"
     
-    # 处理文件名以避免过长
-    for i in (seq (count $results))
-        set -l parts (string split \t $results[$i])
-        set -l file_name $parts[1]
-        set -l short_name (basename $file_name)
-        
-        # 如果需要人类可读的数字
-        if set -q _flag_human_readable
-            set parts[4] (_human_readable_number $parts[4]) # 字符数
-            set parts[5] (_human_readable_number $parts[5]) # 单词数
-            set parts[6] (_human_readable_number $parts[6]) # token数
-            set parts[7] (_human_readable_size $parts[7]) # 大小
-        else
-            set parts[7] "$parts[7] bytes"
-        end
-        
-        set -l new_result "$short_name\t$parts[2]\t$parts[3]\t$parts[4]\t$parts[5]\t$parts[6]\t$parts[7]"
-        set -a display_results $new_result
-    end
-    
-    # 总计行人类可读格式
+    # 人类可读格式的总计
     if set -q _flag_human_readable
         set display_total_chars (_human_readable_number $total_chars)
         set display_total_words (_human_readable_number $total_words)
         set display_total_tokens (_human_readable_number $total_tokens)
         set display_total_size (_human_readable_size $total_size)
-    else
-        set display_total_size "$total_size bytes"
-    end
-    
-    # 输出表格
-    echo "文件统计表格："
-    # 表头
-    printf "%-30s\t%-12s\t%-8s\t%-10s\t%-10s\t%-10s\t%-15s\n" "文件" "类型" "编码" "字符数" "单词数" "Token数" "大小"
-    printf "%-30s\t%-12s\t%-8s\t%-10s\t%-10s\t%-10s\t%-15s\n" "------------------------------" "------------" "--------" "----------" "----------" "----------" "---------------"
-    
-    # 打印每个文件的结果
-    for result in $display_results
-        set -l parts (string split \t $result)
-        printf "%-30s\t%-12s\t%-8s\t%-10s\t%-10s\t%-10s\t%-15s\n" $parts
     end
     
     # 打印总计
-    printf "%-30s\t%-12s\t%-8s\t%-10s\t%-10s\t%-10s\t%-15s\n" "------------------------------" "------------" "--------" "----------" "----------" "----------" "---------------"
-    printf "%-30s\t%-12s\t%-8s\t%-10s\t%-10s\t%-10s\t%-15s\n" "总计($file_count文件)" "" "" "$display_total_chars" "$display_total_words" "$display_total_tokens" "$display_total_size"
+    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "------------------------------" "---------------" "--------" "------------" "------------" "------------" "---------------"
+    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "总计($file_count文件)" "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
 end
 
 # 辅助函数：转换人类可读的数字
- function _human_readable_number --argument-names number
+function _human_readable_number --argument-names number
     if test $number -lt 1000
         echo $number
     else if test $number -lt 1000000
