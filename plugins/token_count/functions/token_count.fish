@@ -146,14 +146,98 @@ function token_count --description 'Count tokens in text files for LLM interacti
         return 0
     end
 
-    # 多文件模式：输出表格
-    echo "文件统计表格："
+    # 多文件模式：使用 awk 输出表格
+    set -l awk_script '
+    BEGIN {
+        # 设置列标题
+        titles[1] = "文件"; 
+        titles[2] = "类型"; 
+        titles[3] = "编码"; 
+        titles[4] = "字符数"; 
+        titles[5] = "单词数"; 
+        titles[6] = "Token数"; 
+        titles[7] = "大小";
+        
+        # 初始化列宽度
+        widths[1] = length(titles[1]);
+        widths[2] = length(titles[2]);
+        widths[3] = length(titles[3]);
+        widths[4] = length(titles[4]);
+        widths[5] = length(titles[5]);
+        widths[6] = length(titles[6]);
+        widths[7] = length(titles[7]);
+        
+        # 设置列数
+        num_cols = 7;
+        
+        # 设置总计行
+        total_label = "总计(" file_count "文件)";
+        if (length(total_label) > widths[1]) widths[1] = length(total_label);
+    }
     
-    # 表头
-    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "文件" "类型" "编码" "字符数" "单词数" "Token数" "大小"
-    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "------------------------------" "---------------" "--------" "------------" "------------" "------------" "---------------"
+    # 处理每一行数据
+    {
+        # 存储数据
+        data[NR, 1] = $1;
+        data[NR, 2] = $2;
+        data[NR, 3] = $3;
+        data[NR, 4] = $4;
+        data[NR, 5] = $5;
+        data[NR, 6] = $6;
+        data[NR, 7] = $7;
+        
+        # 更新列宽度
+        for (i = 1; i <= num_cols; i++) {
+            if (length($i) > widths[i]) widths[i] = length($i);
+        }
+    }
     
-    # 打印每个文件的结果
+    END {
+        # 打印表格标题
+        printf "文件统计表格：\n";
+        
+        # 打印列标题
+        for (i = 1; i <= num_cols; i++) {
+            printf "%-" widths[i] "s  ", titles[i];
+        }
+        printf "\n";
+        
+        # 打印分隔线
+        for (i = 1; i <= num_cols; i++) {
+            for (j = 1; j <= widths[i]; j++) printf "-";
+            printf "  ";
+        }
+        printf "\n";
+        
+        # 打印数据行
+        for (i = 1; i <= NR; i++) {
+            for (j = 1; j <= num_cols; j++) {
+                printf "%-" widths[j] "s  ", data[i, j];
+            }
+            printf "\n";
+        }
+        
+        # 打印分隔线
+        for (i = 1; i <= num_cols; i++) {
+            for (j = 1; j <= widths[i]; j++) printf "-";
+            printf "  ";
+        }
+        printf "\n";
+        
+        # 打印总计行
+        printf "%-" widths[1] "s  ", total_label;
+        printf "%-" widths[2] "s  ", "";
+        printf "%-" widths[3] "s  ", "";
+        printf "%-" widths[4] "s  ", total_chars;
+        printf "%-" widths[5] "s  ", total_words;
+        printf "%-" widths[6] "s  ", total_tokens;
+        printf "%-" widths[7] "s  ", total_size;
+        printf "\n";
+    }
+    '
+    
+    # 准备表格数据
+    set -l table_data
     for i in (seq 1 $file_count)
         set -l idx (math "($i - 1) * 7 + 1")
         set -l filename (basename $file_results[$idx])
@@ -178,10 +262,11 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_size (_human_readable_size $size)
         end
         
-        printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" $filename $filetype $fileencoding $display_chars $display_words $display_tokens $display_size
+        # 添加到表格数据
+        set -a table_data "$filename\t$filetype\t$fileencoding\t$display_chars\t$display_words\t$display_tokens\t$display_size"
     end
     
-    # 准备显示的总计
+    # 准备总计行
     set -l display_total_chars $total_chars
     set -l display_total_words $total_words
     set -l display_total_tokens $total_tokens
@@ -195,9 +280,13 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set display_total_size (_human_readable_size $total_size)
     end
     
-    # 打印总计
-    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "------------------------------" "---------------" "--------" "------------" "------------" "------------" "---------------"
-    printf "%-30s %-15s %-8s %-12s %-12s %-12s %-15s\n" "总计($file_count文件)" "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
+    # 用awk处理表格输出
+    echo $table_data | awk -v file_count=$file_count \
+                          -v total_chars=$display_total_chars \
+                          -v total_words=$display_total_words \
+                          -v total_tokens=$display_total_tokens \
+                          -v total_size="$display_total_size" \
+                          -F "\t" $awk_script
 end
 
 # 辅助函数：转换人类可读的数字
