@@ -35,6 +35,12 @@ function token_count --description 'Count tokens in text files for LLM interacti
     set -l doc_extensions pdf doc docx ppt pptx xls xlsx
     
     for file in $files
+        # 先检查是否目录
+        if test -d "$file"
+            # 目录直接跳过，不显示错误
+            continue
+        end
+        
         if test -f "$file"
             # 检查扩展名
             set -l ext (string split -r -m1 '.' "$file" | tail -n 1)
@@ -57,7 +63,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 end
             end
         else
-            echo "跳过：$file 不是文件或不存在" >&2
+            echo "跳过：$file (不存在)" >&2
         end
     end
     
@@ -235,14 +241,40 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
     # 多文件模式: 直接用 Fish 处理表格
 
-    # 首先计算每列所需的宽度
+    # 初始化最小列宽
     set -l filename_width 20  # 文件名列的最小宽度
-    set -l type_width 12      # 类型列的最小宽度
+    set -l type_width 15      # 类型列的最小宽度
     set -l encoding_width 8   # 编码列的最小宽度
     set -l chars_width 10     # 字符数列的最小宽度
     set -l words_width 10     # 单词数列的最小宽度
     set -l tokens_width 10    # Token数列的最小宽度
     set -l size_width 15      # 大小列的最小宽度
+
+    # 根据标题计算最小列宽
+    set -l headers "文件名" "类型" "编码" "字符数" "单词数" "Token数" "大小"
+    set -l header_widths (string length --visible -- $headers[1]) (string length --visible -- $headers[2]) (string length --visible -- $headers[3]) (string length --visible -- $headers[4]) (string length --visible -- $headers[5]) (string length --visible -- $headers[6]) (string length --visible -- $headers[7])
+    
+    if test $header_widths[1] -gt $filename_width
+        set filename_width $header_widths[1]
+    end
+    if test $header_widths[2] -gt $type_width
+        set type_width $header_widths[2]
+    end
+    if test $header_widths[3] -gt $encoding_width
+        set encoding_width $header_widths[3]
+    end
+    if test $header_widths[4] -gt $chars_width
+        set chars_width $header_widths[4]
+    end
+    if test $header_widths[5] -gt $words_width
+        set words_width $header_widths[5]
+    end
+    if test $header_widths[6] -gt $tokens_width
+        set tokens_width $header_widths[6]
+    end
+    if test $header_widths[7] -gt $size_width
+        set size_width $header_widths[7]
+    end
 
     # 计算总计行的文本宽度
     set -l total_str "总计($file_count文件)"
@@ -251,14 +283,69 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set filename_width $total_visible_width
     end
 
-    # 检查每个文件名长度，更新列宽
+    # 检查每行数据的宽度，更新列宽
     for i in (seq 1 $file_count)
         set -l idx (math "($i - 1) * 7 + 1")
+        
+        # 文件名列
         set -l filename (basename $file_results[$idx])
         set -l name_visible_width (string length --visible -- "$filename")
-        
         if test $name_visible_width -gt $filename_width
             set filename_width $name_visible_width
+        end
+        
+        # 文件类型列
+        set -l filetype $file_results[(math $idx + 1)]
+        set -l type_visible_width (string length --visible -- "$filetype")
+        if test $type_visible_width -gt $type_width
+            set type_width $type_visible_width
+        end
+        
+        # 编码列
+        set -l fileencoding $file_results[(math $idx + 2)]
+        set -l encoding_visible_width (string length --visible -- "$fileencoding")
+        if test $encoding_visible_width -gt $encoding_width
+            set encoding_width $encoding_visible_width
+        end
+        
+        # 准备显示数据
+        set -l chars $file_results[(math $idx + 3)]
+        set -l words $file_results[(math $idx + 4)]
+        set -l tokens $file_results[(math $idx + 5)]
+        set -l size $file_results[(math $idx + 6)]
+        
+        set -l display_chars $chars
+        set -l display_words $words
+        set -l display_tokens $tokens
+        set -l display_size "$size bytes"
+        
+        # 人类可读格式(用于计算列宽)
+        if set -q _flag_human_readable
+            set display_chars (_human_readable_number $chars)
+            set display_words (_human_readable_number $words)
+            set display_tokens (_human_readable_number $tokens)
+            set display_size (_human_readable_size $size)
+        end
+        
+        # 检查其他列的宽度
+        set -l chars_visible_width (string length --visible -- "$display_chars")
+        if test $chars_visible_width -gt $chars_width
+            set chars_width $chars_visible_width
+        end
+        
+        set -l words_visible_width (string length --visible -- "$display_words")
+        if test $words_visible_width -gt $words_width
+            set words_width $words_visible_width
+        end
+        
+        set -l tokens_visible_width (string length --visible -- "$display_tokens")
+        if test $tokens_visible_width -gt $tokens_width
+            set tokens_width $tokens_visible_width
+        end
+        
+        set -l size_visible_width (string length --visible -- "$display_size")
+        if test $size_visible_width -gt $size_width
+            set size_width $size_visible_width
         end
     end
 
@@ -267,23 +354,20 @@ function token_count --description 'Count tokens in text files for LLM interacti
     
     # 打印表头
     echo -n "| "
-    _pad_to_width "FILE" $filename_width
+    _pad_to_width "文件名" $filename_width
     echo -n " | "
-    _pad_to_width "TYPE" $type_width
+    _pad_to_width "类型" $type_width
     echo -n " | "
-    _pad_to_width "ENCODING" $encoding_width
+    _pad_to_width "编码" $encoding_width
     echo -n " | "
-    _pad_to_width "CHARS" $chars_width
+    _pad_to_width "字符数" $chars_width
     echo -n " | "
-    _pad_to_width "WORDS" $words_width
+    _pad_to_width "单词数" $words_width
     echo -n " | "
-    _pad_to_width "TOKENS" $tokens_width
+    _pad_to_width "Token数" $tokens_width
     echo -n " | "
-    _pad_to_width "SIZE" $size_width
+    _pad_to_width "大小" $size_width
     echo " |"
-    
-    # 中下添加说明行，解释英文表头
-    echo "说明: FILE=文件, TYPE=类型, ENCODING=编码, CHARS=字符数, WORDS=单词数, TOKENS=Token数, SIZE=大小"
 
     # 打印分隔线
     echo -n "| "
