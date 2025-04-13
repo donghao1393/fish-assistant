@@ -8,7 +8,15 @@ function token_count --description 'Count tokens in text files for LLM interacti
         return 1
     end
 
-    set -l script_dir $SCRIPTS_DIR/fish/plugins/token_count
+    # 检查并设置脚本目录
+    set -l script_dir
+    if set -q SCRIPTS_DIR
+        set script_dir $SCRIPTS_DIR/fish/plugins/token_count
+    else
+        # 如果SCRIPTS_DIR未设置，尝试从当前脚本位置推断
+        set -l current_script (status filename)
+        set script_dir (dirname (dirname (dirname $current_script)))
+    end
     set -l counter_script $script_dir/token_counter.py
     set -l venv_dir $script_dir/.venv
     set -l files $argv
@@ -18,6 +26,43 @@ function token_count --description 'Count tokens in text files for LLM interacti
     if test (count $files) -gt 1
         set is_multiple 1
     end
+    
+    # 过滤掉不应处理的二进制文件
+    set -l filtered_files
+    
+    # 先根据扩展名进行初步过滤，提高性能
+    set -l text_extensions txt md markdown rst py js ts html css xml json yaml yml toml ini conf sh bash zsh fish php rb pl sql c cpp h hpp java go cs scala kt swift rs d jsx tsx vue svelte scss sass less csv tsv log
+    set -l doc_extensions pdf doc docx ppt pptx xls xlsx
+    
+    for file in $files
+        if test -f "$file"
+            # 检查扩展名
+            set -l ext (string split -r -m1 '.' "$file" | tail -n 1)
+            if contains $ext $text_extensions || contains $ext $doc_extensions
+                set -a filtered_files $file
+            else
+                # 如果没有匹配到扩展名，则使用file命令检查
+                set -l file_type (command file -b --mime-type "$file" 2>/dev/null)
+                # 如果是支持的文件类型，就添加到处理列表中
+                if string match -q "text/*" -- "$file_type" || \
+                   string match -q "application/json" -- "$file_type" || \
+                   string match -q "application/x-*script" -- "$file_type" || \
+                   string match -q "application/xml" -- "$file_type" || \
+                   string match -q "application/pdf" -- "$file_type" || \
+                   string match -q "application/msword" -- "$file_type" || \
+                   string match -q "application/vnd.openxmlformats-officedocument.*" -- "$file_type"
+                    set -a filtered_files $file
+                else
+                    echo "跳过不支持的文件类型: $file ($file_type)" >&2
+                end
+            end
+        else
+            echo "跳过：$file 不是文件或不存在" >&2
+        end
+    end
+    
+    # 更新文件列表为过滤后的列表
+    set files $filtered_files
 
     # 检查虚拟环境是否存在
     if not test -d $venv_dir
@@ -74,19 +119,61 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set -l result (uv run $counter_script "$file_path")
         set -l status_code $status
         popd
-
+        
         if test $status_code -ne 0
             echo "Error: 处理文件失败: $file_path" >&2
             continue
         end
-
-        # 解析JSON结果
-        set -l type (echo $result | string match -r '"type":\s*"([^"]*)"' | tail -n 1)
-        set -l encoding (echo $result | string match -r '"encoding":\s*"([^"]*)"' | tail -n 1)
-        set -l chars (echo $result | string match -r '"chars":\s*(\d+)' | tail -n 1)
-        set -l words (echo $result | string match -r '"words":\s*(\d+)' | tail -n 1)
-        set -l tokens (echo $result | string match -r '"tokens":\s*(\d+)' | tail -n 1)
-        set -l size (echo $result | string match -r '"size":\s*(\d+)' | tail -n 1)
+        
+        # 从JSON结果中提取数据
+        set -l type ""
+        set -l encoding ""
+        set -l chars 0
+        set -l words 0
+        set -l tokens 0
+        set -l size 0
+        set -l parsed 0
+        
+        # 优先使用jq，再使用jnv，最后使用正则表达式
+        if command -q jq
+            set type (echo $result | jq -r '.type' 2>/dev/null)
+            if test $status -eq 0
+                set parsed 1
+                set encoding (echo $result | jq -r '.encoding' 2>/dev/null)
+                set chars (echo $result | jq -r '.chars' 2>/dev/null)
+                set words (echo $result | jq -r '.words' 2>/dev/null)
+                set tokens (echo $result | jq -r '.tokens' 2>/dev/null)
+                set size (echo $result | jq -r '.size' 2>/dev/null)
+            end
+        end
+        
+        if test $parsed -eq 0; and command -q jnv
+            set type (echo $result | jnv -r '.type' 2>/dev/null)
+            if test $status -eq 0
+                set parsed 1
+                set encoding (echo $result | jnv -r '.encoding' 2>/dev/null)
+                set chars (echo $result | jnv -r '.chars' 2>/dev/null)
+                set words (echo $result | jnv -r '.words' 2>/dev/null)
+                set tokens (echo $result | jnv -r '.tokens' 2>/dev/null)
+                set size (echo $result | jnv -r '.size' 2>/dev/null)
+            end
+        end
+        
+        # 如果jq和jnv都不可用或解析失败，使用正则表达式解析
+        if test $parsed -eq 0
+            set type (echo $result | string match -r '"type":\s*"([^"]*)"' | tail -n 1)
+            set encoding (echo $result | string match -r '"encoding":\s*"([^"]*)"' | tail -n 1)
+            set chars (echo $result | string match -r '"chars":\s*(\d+)' | tail -n 1)
+            set words (echo $result | string match -r '"words":\s*(\d+)' | tail -n 1)
+            set tokens (echo $result | string match -r '"tokens":\s*(\d+)' | tail -n 1)
+            set size (echo $result | string match -r '"size":\s*(\d+)' | tail -n 1)
+        end
+        
+        # 如果数据解析失败，跳过该文件
+        if test -z "$type" -o -z "$encoding" -o -z "$chars" -o -z "$words" -o -z "$tokens" -o -z "$size"
+            echo "Error: 无法解析文件处理结果: $file_path" >&2
+            continue
+        end
         
         # 保存最后一个处理的文件信息(用于单文件模式)
         set last_file $file
@@ -148,7 +235,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
     # 多文件模式: 直接用 Fish 处理表格
 
-    # 首先计算每列所需的宽度
+    # 计算文件名宽度
     set -l filename_width 20  # 文件名列的最小宽度
     set -l type_width 12      # 类型列的最小宽度
     set -l encoding_width 8   # 编码列的最小宽度
@@ -156,9 +243,9 @@ function token_count --description 'Count tokens in text files for LLM interacti
     set -l words_width 10     # 单词数列的最小宽度
     set -l tokens_width 10    # Token数列的最小宽度
     set -l size_width 15      # 大小列的最小宽度
-
+    
     # 计算总计行的文本宽度
-    set -l total_text "总计($file_count文件)"
+    set -l total_text (string join "" "总计(" $file_count "文件)")
     if test (string length $total_text) -gt $filename_width
         set filename_width (string length $total_text)
     end
@@ -218,6 +305,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
     end
 
     # 准备总计行数据
+    set -l total_str "总计($file_count文件)"
     set -l display_total_chars $total_chars
     set -l display_total_words $total_words
     set -l display_total_tokens $total_tokens
@@ -234,8 +322,11 @@ function token_count --description 'Count tokens in text files for LLM interacti
     # 打印分隔线
     printf "$format_str\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
     
-    # 打印总计行
-    printf "$format_str\n" $total_text "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
+    # 打印总计行 - 使用字符串拼接解决fish的变量替换问题
+    set -l total_label "总计"
+    # 使用字符串工具替代直接变量嵌入
+    set -l total_display (string join "" $total_label "(" $file_count "文件)")
+    printf "$format_str\n" $total_display "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
 end
 
 # 辅助函数：转换人类可读的数字
