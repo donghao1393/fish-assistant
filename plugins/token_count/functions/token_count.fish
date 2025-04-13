@@ -235,7 +235,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
     # 多文件模式: 直接用 Fish 处理表格
 
-    # 计算文件名宽度
+    # 首先计算每列所需的宽度
     set -l filename_width 20  # 文件名列的最小宽度
     set -l type_width 12      # 类型列的最小宽度
     set -l encoding_width 8   # 编码列的最小宽度
@@ -243,38 +243,64 @@ function token_count --description 'Count tokens in text files for LLM interacti
     set -l words_width 10     # 单词数列的最小宽度
     set -l tokens_width 10    # Token数列的最小宽度
     set -l size_width 15      # 大小列的最小宽度
-    
+
     # 计算总计行的文本宽度
-    set -l total_text (string join "" "总计(" $file_count "文件)")
-    if test (string length $total_text) -gt $filename_width
-        set filename_width (string length $total_text)
+    set -l total_str "总计($file_count文件)"
+    set -l total_visible_width (string length --visible -- "$total_str")
+    if test $total_visible_width -gt $filename_width
+        set filename_width $total_visible_width
     end
 
     # 检查每个文件名长度，更新列宽
     for i in (seq 1 $file_count)
         set -l idx (math "($i - 1) * 7 + 1")
         set -l filename (basename $file_results[$idx])
-        set -l name_len (string length $filename)
+        set -l name_visible_width (string length --visible -- "$filename")
         
-        if test $name_len -gt $filename_width
-            set filename_width $name_len
+        if test $name_visible_width -gt $filename_width
+            set filename_width $name_visible_width
         end
     end
 
     # 打印表格标题
     echo "文件统计表格："
     
-    # 设置格式化字符串
-    set -l format_str "%-"$filename_width"s  %-"$type_width"s  %-"$encoding_width"s  %-"$chars_width"s  %-"$words_width"s  %-"$tokens_width"s  %-"$size_width"s"
-
-    # 使用英文标题避免中文字符宽度问题
-    printf "$format_str\n" "FILE" "TYPE" "ENCODING" "CHARS" "WORDS" "TOKENS" "SIZE"
+    # 打印表头
+    echo -n "| "
+    _pad_to_width "FILE" $filename_width
+    echo -n " | "
+    _pad_to_width "TYPE" $type_width
+    echo -n " | "
+    _pad_to_width "ENCODING" $encoding_width
+    echo -n " | "
+    _pad_to_width "CHARS" $chars_width
+    echo -n " | "
+    _pad_to_width "WORDS" $words_width
+    echo -n " | "
+    _pad_to_width "TOKENS" $tokens_width
+    echo -n " | "
+    _pad_to_width "SIZE" $size_width
+    echo " |"
     
-    # 在下方单独打印中文标题说明
+    # 中下添加说明行，解释英文表头
     echo "说明: FILE=文件, TYPE=类型, ENCODING=编码, CHARS=字符数, WORDS=单词数, TOKENS=Token数, SIZE=大小"
 
     # 打印分隔线
-    printf "$format_str\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
+    echo -n "| "
+    _pad_to_width (string repeat -n $filename_width "-") $filename_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $type_width "-") $type_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $encoding_width "-") $encoding_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $chars_width "-") $chars_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $words_width "-") $words_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $tokens_width "-") $tokens_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $size_width "-") $size_width
+    echo " |"
 
     # 打印每个文件的数据行
     for i in (seq 1 $file_count)
@@ -301,11 +327,26 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_size (_human_readable_size $size)
         end
         
-        printf "$format_str\n" $filename $filetype $fileencoding $display_chars $display_words $display_tokens $display_size
+        # 打印行
+        echo -n "| "
+        _pad_to_width "$filename" $filename_width
+        echo -n " | "
+        _pad_to_width "$filetype" $type_width
+        echo -n " | "
+        _pad_to_width "$fileencoding" $encoding_width
+        echo -n " | "
+        _pad_to_width "$display_chars" $chars_width
+        echo -n " | "
+        _pad_to_width "$display_words" $words_width
+        echo -n " | "
+        _pad_to_width "$display_tokens" $tokens_width
+        echo -n " | "
+        _pad_to_width "$display_size" $size_width
+        echo " |"
     end
 
     # 准备总计行数据
-    set -l total_str "总计($file_count文件)"
+    set -l total_str (string join "" "总计(" $file_count "文件)")
     set -l display_total_chars $total_chars
     set -l display_total_words $total_words
     set -l display_total_tokens $total_tokens
@@ -320,13 +361,56 @@ function token_count --description 'Count tokens in text files for LLM interacti
     end
 
     # 打印分隔线
-    printf "$format_str\n" (string repeat -n $filename_width "-") (string repeat -n $type_width "-") (string repeat -n $encoding_width "-") (string repeat -n $chars_width "-") (string repeat -n $words_width "-") (string repeat -n $tokens_width "-") (string repeat -n $size_width "-")
+    echo -n "| "
+    _pad_to_width (string repeat -n $filename_width "-") $filename_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $type_width "-") $type_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $encoding_width "-") $encoding_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $chars_width "-") $chars_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $words_width "-") $words_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $tokens_width "-") $tokens_width
+    echo -n " | "
+    _pad_to_width (string repeat -n $size_width "-") $size_width
+    echo " |"
     
-    # 打印总计行 - 使用字符串拼接解决fish的变量替换问题
-    set -l total_label "总计"
-    # 使用字符串工具替代直接变量嵌入
-    set -l total_display (string join "" $total_label "(" $file_count "文件)")
-    printf "$format_str\n" $total_display "" "" $display_total_chars $display_total_words $display_total_tokens $display_total_size
+    # 打印总计行
+    echo -n "| "
+    _pad_to_width "$total_str" $filename_width
+    echo -n " | "
+    _pad_to_width "" $type_width
+    echo -n " | "
+    _pad_to_width "" $encoding_width
+    echo -n " | "
+    _pad_to_width "$display_total_chars" $chars_width
+    echo -n " | "
+    _pad_to_width "$display_total_words" $words_width
+    echo -n " | "
+    _pad_to_width "$display_total_tokens" $tokens_width
+    echo -n " | "
+    _pad_to_width "$display_total_size" $size_width
+    echo " |"
+end
+
+# 辅助函数：基于可见宽度的格式化
+
+function _pad_to_width --argument-names str width fill
+    # 默认填充字符为空格
+    if test -z "$fill"
+        set fill " "
+    end
+    
+    # 计算显示宽度
+    set -l str_width (string length --visible -- "$str")
+    set -l padding (math "$width - $str_width")
+    
+    echo -n "$str"
+    if test $padding -gt 0
+        echo -n (string repeat -n $padding "$fill")
+    end
 end
 
 # 辅助函数：转换人类可读的数字
