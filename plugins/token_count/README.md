@@ -58,12 +58,13 @@ fish install.fish
 ## 使用方法
 
 ```bash
-token_count [-h|--human-readable] <file_path> [file_path...]
+token_count [-h|--human-readable] [-v|--verbose] <file_path> [file_path...]
 ```
 
 ### 参数
 
 - `-h` 或 `--human-readable`: 使用人类可读格式显示数字（如K/M/G等）
+- `-v` 或 `--verbose`: 显示详细处理信息和警告（默认不显示）
 
 ### 示例
 
@@ -73,6 +74,7 @@ token_count document.pdf                 # 处理单个PDF文件
 token_count *.md                         # 处理所有Markdown文件
 token_count document1.txt document2.txt  # 处理多个指定文件
 token_count -h *.md                      # 使用人类可读格式显示所有Markdown文件的统计
+token_count -v document.pdf              # 处理PDF文件并显示详细警告信息
 ```
 
 ### 单文件输出示例

@@ -5,24 +5,39 @@ import chardet
 import tiktoken
 import pdfplumber
 import json  # 添加json模块导入
+import warnings
 from pathlib import Path
 
 def get_file_type(file_path):
     mime = magic.Magic(mime=True)
     return mime.from_file(file_path)
 
-def extract_pdf_text(file_path):
+def extract_pdf_text(file_path, verbose=False):
     try:
-        with pdfplumber.open(file_path) as pdf:
-            text = ""
-            for page in pdf.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    text += extracted
-            if not text:
-                print(f"Warning: No text extracted from PDF: {file_path}", file=sys.stderr)
-                return ""
-            return text
+        # 默认过滤pdfplumber警告，除非启用详细模式
+        if not verbose:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="CropBox missing")
+                warnings.filterwarnings("ignore", category=UserWarning)
+                with pdfplumber.open(file_path) as pdf:
+                    text = ""
+                    for page in pdf.pages:
+                        extracted = page.extract_text()
+                        if extracted:
+                            text += extracted
+        else:
+            # 详细模式：显示所有警告
+            with pdfplumber.open(file_path) as pdf:
+                text = ""
+                for page in pdf.pages:
+                    extracted = page.extract_text()
+                    if extracted:
+                        text += extracted
+                        
+        if not text:
+            print(f"Warning: No text extracted from PDF: {file_path}", file=sys.stderr)
+            return ""
+        return text
     except Exception as e:
         print(f"Error extracting PDF text: {str(e)}", file=sys.stderr)
         return None
@@ -53,7 +68,7 @@ def count_tokens(text, model="cl100k_base"):
         print(f"Error counting tokens: {str(e)}", file=sys.stderr)
         return None
 
-def process_file(file_path):
+def process_file(file_path, verbose=False):
     try:
         file_type = get_file_type(file_path)
         file_size = os.path.getsize(file_path)
@@ -77,7 +92,7 @@ def process_file(file_path):
             return None
 
         if file_type == "application/pdf":
-            content = extract_pdf_text(file_path)
+            content = extract_pdf_text(file_path, verbose)
             encoding = "pdf"
         else:
             try:
@@ -122,10 +137,11 @@ def process_file(file_path):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python token_counter.py <file_path>", file=sys.stderr)
+        print("Usage: python token_counter.py <file_path> [--verbose]", file=sys.stderr)
         sys.exit(1)
     
     file_path = sys.argv[1]
+    verbose = "--verbose" in sys.argv or "-v" in sys.argv
     
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}", file=sys.stderr)
@@ -135,7 +151,7 @@ def main():
         print(f"Not a file: {file_path}", file=sys.stderr)
         sys.exit(1)
         
-    result = process_file(file_path)
+    result = process_file(file_path, verbose)
     
     if result:
         # 使用json模块输出简洁的单行JSON

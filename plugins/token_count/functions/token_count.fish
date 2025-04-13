@@ -1,10 +1,10 @@
 function token_count --description 'Count tokens in text files for LLM interaction'
     # 参数处理
-    set -l options 'h/human-readable'
+    set -l options 'h/human-readable' 'v/verbose'
     argparse $options -- $argv
     
     if test (count $argv) -eq 0
-        echo "Usage: token_count [-h|--human-readable] <file_path> [file_path...]" >&2
+        echo "Usage: token_count [-h|--human-readable] [-v|--verbose] <file_path> [file_path...]" >&2
         return 1
     end
 
@@ -122,7 +122,14 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
         # 使用 uv 运行 Python 脚本并解析结果
         pushd $script_dir
-        set -l result (uv run $counter_script "$file_path")
+        
+        # 根据是否需要详细输出来决定是否传递 --verbose 参数
+        if set -q _flag_verbose
+            set result (uv run $counter_script "$file_path" --verbose)
+        else
+            set result (uv run $counter_script "$file_path" 2>/dev/null)
+        end
+        
         set -l status_code $status
         popd
         

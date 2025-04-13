@@ -46,3 +46,7 @@ end
 
 # 为 token_count 命令添加补全规则
 complete -c token_count -f -a "(__token_count_list_supported_files)"
+
+# 添加选项补全
+complete -c token_count -s h -l human-readable -d "使用人类可读格式显示数字（如K/M/G等）"
+complete -c token_count -s v -l verbose -d "显示详细处理信息和警告"
