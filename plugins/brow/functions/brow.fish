@@ -1,3 +1,16 @@
+# 显式加载相关函数
+if status is-interactive
+    # 获取当前脚本所在目录
+    set -l current_file (status filename)
+    set -l script_dir (dirname $current_file)
+
+    # 加载相关函数文件
+    source $script_dir/_brow_config.fish
+    source $script_dir/_brow_pod.fish
+    source $script_dir/_brow_forward.fish
+    source $script_dir/_brow_parse_time.fish
+end
+
 function brow --description "Kubernetes 连接管理工具"
     set -l brow_version "0.1.0"
 
