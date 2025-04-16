@@ -79,7 +79,7 @@ spec:
 
     echo "Pod '$pod_name' 已创建并就绪"
     echo "配置: $config_name"
-    echo "环境: $env"
+    echo "Kubernetes上下文: $k8s_context"
     echo "IP: $ip"
     echo "远程端口: $remote_port"
     echo "TTL: $ttl"

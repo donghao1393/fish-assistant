@@ -222,11 +222,15 @@ function _brow_connect --argument-names config_name
     end
 
     # 创建 Pod
-    set -l pod_id (_brow_pod_create $config_name)
+    # 捕获所有输出并获取最后一行作为Pod名称
+    set -l pod_output (_brow_pod_create $config_name)
     if test $status -ne 0
         echo "错误: 创建 Pod 失败"
         return 1
     end
+
+    # 获取最后一行作为Pod名称
+    set -l pod_id (echo $pod_output[-1])
 
     # 获取配置中的本地端口
     set -l config_data (_brow_config_get $config_name)
