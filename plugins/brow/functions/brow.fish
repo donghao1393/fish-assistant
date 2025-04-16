@@ -174,7 +174,7 @@ function _brow_help
     echo "brow - Kubernetes 连接管理工具"
     echo
     echo "用法:"
-    echo "  brow config add <名称> <环境> <IP> [本地端口] [远程端口] [服务名称] [TTL]"
+    echo "  brow config add <名称> <Kubernetes上下文> <IP> [本地端口] [远程端口] [服务名称] [TTL]"
     echo "  brow config list                  列出所有配置"
     echo "  brow config show <名称>           显示特定配置详情"
     echo "  brow config edit <名称>           编辑配置"
@@ -195,7 +195,7 @@ function _brow_help
     echo "  brow help                         显示此帮助信息"
     echo
     echo "示例:"
-    echo "  brow config add mysql-dev dev 10.0.0.1 3306 3306 mysql 30m"
+    echo "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m"
     echo "  brow connect mysql-dev"
 end
 

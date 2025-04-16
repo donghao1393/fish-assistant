@@ -29,17 +29,19 @@ function _brow_forward_start --argument-names pod_id local_port
         end
     end
 
-    # 获取环境
-    set -l env "dev" # 默认环境
+    # 获取上下文
+    set -l k8s_context "" # 默认为空
     if test "$config_name" != "未知"
         set -l config_data (_brow_config_get $config_name)
         if test $status -eq 0
-            set env (echo $config_data | jq -r '.env')
+            set k8s_context (echo $config_data | jq -r '.k8s_context')
         end
     end
 
-    # 确定k8s context
-    set -l k8s_context "oasis-$env-aks-admin"
+    # 如果没有上下文，使用当前上下文
+    if test -z "$k8s_context"
+        set k8s_context (kubectl config current-context)
+    end
 
     # 生成唯一的转发ID
     set -l forward_id (date +%s%N | shasum | head -c 8)

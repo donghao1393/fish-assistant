@@ -48,6 +48,11 @@ function __brow_forward_ids
     end
 end
 
+function __brow_k8s_contexts
+    # 获取所有Kubernetes上下文
+    kubectl config get-contexts --output=name 2>/dev/null
+end
+
 # 主命令补全
 complete -c brow -f -n "__brow_needs_command" -a "config" -d "管理连接配置"
 complete -c brow -f -n "__brow_needs_command" -a "pod" -d "管理Kubernetes Pod"
@@ -89,3 +94,6 @@ complete -c brow -f -n "__brow_using_subcommand forward start" -a "(__brow_pod_i
 
 # 转发ID补全
 complete -c brow -f -n "__brow_using_subcommand forward stop" -a "(__brow_forward_ids)"
+
+# Kubernetes上下文补全
+complete -c brow -f -n "__brow_using_subcommand config add" -a "(__brow_k8s_contexts)"

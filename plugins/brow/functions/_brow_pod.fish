@@ -8,7 +8,7 @@ function _brow_pod_create --argument-names config_name
 
     # 获取配置数据
     set -l config_data (_brow_config_get $config_name)
-    set -l env (echo $config_data | jq -r '.env')
+    set -l k8s_context (echo $config_data | jq -r '.k8s_context')
     set -l ip (echo $config_data | jq -r '.ip')
     set -l remote_port (echo $config_data | jq -r '.remote_port')
     set -l service_name (echo $config_data | jq -r '.service_name')
@@ -59,8 +59,7 @@ spec:
     - containerPort: $remote_port
   restartPolicy: Never" >$tmp_yaml
 
-    # 确定k8s context
-    set -l k8s_context "oasis-$env-aks-admin"
+    # 使用配置中的k8s context
 
     # 应用YAML创建Pod
     kubectl --context=$k8s_context apply -f $tmp_yaml >/dev/null
@@ -286,17 +285,19 @@ function _brow_pod_delete --argument-names pod_id
         end
     end
 
-    # 获取Pod所在的环境
-    set -l env "dev" # 默认环境
+    # 获取Pod所在的上下文
+    set -l k8s_context "" # 默认为空
     if test "$config_name" != "未知"
         set -l config_data (_brow_config_get $config_name)
         if test $status -eq 0
-            set env (echo $config_data | jq -r '.env')
+            set k8s_context (echo $config_data | jq -r '.k8s_context')
         end
     end
 
-    # 确定k8s context
-    set -l k8s_context "oasis-$env-aks-admin"
+    # 如果没有上下文，使用当前上下文
+    if test -z "$k8s_context"
+        set k8s_context (kubectl config current-context)
+    end
 
     # 删除Pod
     echo "正在删除Pod '$pod_id'..."
@@ -347,17 +348,19 @@ function _brow_pod_cleanup
 
             # 如果已过期，删除Pod
             if test $now -gt $expiry_time
-                # 获取环境
-                set -l env "dev" # 默认环境
+                # 获取上下文
+                set -l k8s_context "" # 默认为空
                 if test "$config_name" != "未知"
                     set -l config_data (_brow_config_get $config_name 2>/dev/null)
                     if test $status -eq 0
-                        set env (echo $config_data | jq -r '.env')
+                        set k8s_context (echo $config_data | jq -r '.k8s_context')
                     end
                 end
 
-                # 确定k8s context
-                set -l k8s_context "oasis-$env-aks-admin"
+                # 如果没有上下文，使用当前上下文
+                if test -z "$k8s_context"
+                    set k8s_context (kubectl config current-context)
+                end
 
                 echo "删除过期的Pod: $pod_name"
                 kubectl --context=$k8s_context delete pod $pod_name >/dev/null 2>&1
