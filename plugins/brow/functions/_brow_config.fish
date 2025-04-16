@@ -181,43 +181,37 @@ function _brow_config_edit --argument-names config_name
     echo "按Enter保留当前值，或输入新值"
 
     # Kubernetes上下文
-    echo -n "Kubernetes上下文 [$current_k8s_context]: "
-    read -l new_k8s_context
+    read -l -P "Kubernetes上下文 [$current_k8s_context]: " new_k8s_context
     if test -z "$new_k8s_context"
         set new_k8s_context $current_k8s_context
     end
 
     # IP
-    echo -n "IP [$current_ip]: "
-    read -l new_ip
+    read -l -P "IP [$current_ip]: " new_ip
     if test -z "$new_ip"
         set new_ip $current_ip
     end
 
     # 本地端口
-    echo -n "本地端口 [$current_local_port]: "
-    read -l new_local_port
+    read -l -P "本地端口 [$current_local_port]: " new_local_port
     if test -z "$new_local_port"
         set new_local_port $current_local_port
     end
 
     # 远程端口
-    echo -n "远程端口 [$current_remote_port]: "
-    read -l new_remote_port
+    read -l -P "远程端口 [$current_remote_port]: " new_remote_port
     if test -z "$new_remote_port"
         set new_remote_port $current_remote_port
     end
 
     # 服务名称
-    echo -n "服务名称 [$current_service_name]: "
-    read -l new_service_name
+    read -l -P "服务名称 [$current_service_name]: " new_service_name
     if test -z "$new_service_name"
         set new_service_name $current_service_name
     end
 
     # TTL
-    echo -n "TTL [$current_ttl]: "
-    read -l new_ttl
+    read -l -P "TTL [$current_ttl]: " new_ttl
     if test -z "$new_ttl"
         set new_ttl $current_ttl
     end
@@ -225,12 +219,19 @@ function _brow_config_edit --argument-names config_name
     # 使用jo创建JSON对象
     set -l config_json (jo k8s_context=$new_k8s_context ip=$new_ip local_port=$new_local_port remote_port=$new_remote_port service_name=$new_service_name ttl=$new_ttl)
 
-    # 更新配置文件
-    set -l temp_file (mktemp)
-    jq ".[\"$config_name\"] = $config_json" $config_file > $temp_file
-    mv $temp_file $config_file
+    # 检查是否有变化
+    set -l current_json (jq -c ".[\"$config_name\"]" $config_file)
 
-    echo "配置 '$config_name' 已更新"
+    if test "$current_json" != "$config_json"
+        # 更新配置文件
+        set -l temp_file (mktemp)
+        jq ".[\"$config_name\"] = $config_json" $config_file > $temp_file
+        mv $temp_file $config_file
+
+        echo "配置 '$config_name' 已更新"
+    else
+        echo "配置未变化"
+    end
 end
 
 function _brow_config_remove --argument-names config_name
@@ -250,8 +251,7 @@ function _brow_config_remove --argument-names config_name
             echo "  $pod"
         end
 
-        echo -n "是否仍要删除配置? [y/N]: "
-        read -l confirm
+        read -l -P "是否仍要删除配置? [y/N]: " confirm
 
         if test "$confirm" != "y" -a "$confirm" != "Y"
             echo "操作已取消"

@@ -278,8 +278,7 @@ function _brow_pod_delete --argument-names pod_id
             echo "  ID: $forward_id, 本地端口: $local_port, PID: $pid"
         end
 
-        echo -n "是否停止所有端口转发并删除Pod? [y/N]: "
-        read -l confirm
+        read -l -P "是否停止所有端口转发并删除Pod? [y/N]: " confirm
 
         if test "$confirm" != "y" -a "$confirm" != "Y"
             echo "操作已取消"
