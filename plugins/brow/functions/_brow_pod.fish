@@ -93,7 +93,7 @@ function _brow_pod_list
     # 列出当前所有Pod
 
     # 检查是否有brow Pod
-    set -l pod_count (kubectl get pods --selector=app=brow 2>/dev/null | grep -v NAME | wc -l)
+    set -l pod_count (kubectl get pods 2>/dev/null | grep "brow-" | wc -l)
     set -l pod_count (string trim $pod_count)
 
     if test "$pod_count" = "0"
@@ -109,10 +109,10 @@ function _brow_pod_list
     printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" "------------------------------" "---------------" "---------------" "---------------" "---------------" "---------------"
 
     # 获取所有Pod的JSON数据
-    set -l pods_json (kubectl get pods --selector=app=brow --output=json)
+    set -l pods_json (kubectl get pods --output=json)
 
     # 使用jq提取所有brow Pod的信息
-    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name')
+    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' | grep "^brow-")
 
     # 处理每个Pod
     for pod_name in $pod_names
@@ -324,8 +324,8 @@ function _brow_pod_cleanup
     echo "正在检查过期的Pod..."
 
     # 获取所有brow Pod的名称
-    set -l pods_json (kubectl get pods --selector=app=brow --output=json)
-    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name')
+    set -l pods_json (kubectl get pods --output=json)
+    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' | grep "^brow-")
 
     if test -z "$pod_names"
         echo "没有找到brow Pod"
