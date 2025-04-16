@@ -1,5 +1,5 @@
 function brow --description "Kubernetes 连接管理工具"
-    set -l version "0.1.0"
+    set -l brow_version "0.1.0"
 
     # 检查依赖
     if not command -v kubectl >/dev/null
@@ -158,7 +158,7 @@ function brow --description "Kubernetes 连接管理工具"
             _brow_connect $argv[1]
 
         case version
-            echo "brow v$version"
+            echo "brow v$brow_version"
 
         case help
             _brow_help
