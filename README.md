@@ -30,11 +30,22 @@
 git clone https://github.com/username/fish-toolkit.git ~/dev/scripts/fish
 ```
 
-2. 链接主程序：
+2. 设置环境变量：
+
+在 `~/.config/fish/config.fish` 中添加以下内容：
+```fish
+# 设置 Fish Assistant 的根目录
+set -gx FISH_ASSISTANT_HOME /path/to/fish-assistant
+```
+
+请将 `/path/to/fish-assistant` 替换为实际的项目根目录路径。
+
+3. 链接主程序：
 ```fish
 mkdir -p ~/.config/fish/{functions,completions}
-ln -sf ~/dev/scripts/fish/plugins/fa/functions/fa.fish ~/.config/fish/functions/
-ln -sf ~/dev/scripts/fish/plugins/fa/completions/fa.fish ~/.config/fish/completions/
+# 使用硬链接而非软链接
+ln -f $FISH_ASSISTANT_HOME/plugins/fa/functions/fa.fish ~/.config/fish/functions/
+ln -f $FISH_ASSISTANT_HOME/plugins/fa/completions/fa.fish ~/.config/fish/completions/
 ```
 
 ## 使用方法
@@ -46,8 +57,8 @@ ln -sf ~/dev/scripts/fish/plugins/fa/completions/fa.fish ~/.config/fish/completi
 fa plugin add myplugin
 
 # 编辑插件文件
-vi ~/dev/scripts/fish/plugins/myplugin/functions/myplugin.fish
-vi ~/dev/scripts/fish/plugins/myplugin/completions/myplugin.fish
+vi $FISH_ASSISTANT_HOME/plugins/myplugin/functions/myplugin.fish
+vi $FISH_ASSISTANT_HOME/plugins/myplugin/completions/myplugin.fish
 
 # 映射插件到 Fish 配置目录
 fa plugin map myplugin
@@ -78,7 +89,7 @@ fa clean
 ### 目录结构
 
 ```
-~/dev/scripts/fish/
+$FISH_ASSISTANT_HOME/
 ├── README.md
 ├── functions/          # 存放所有函数文件
 │   ├── common/        # 通用函数

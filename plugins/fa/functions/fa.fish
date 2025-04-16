@@ -1,6 +1,16 @@
 function fa --description 'Fish Assistant - manage fish functions and plugins'
     set -l fa_version "0.1.0"  # 改名为 fa_version
-    set -l base_dir $STUDIO_HOME/scripts/fish
+
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        echo "请在 ~/.config/fish/config.fish 中添加以下内容:"
+        echo "    set -gx FISH_ASSISTANT_HOME /path/to/fish-assistant"
+        echo "其中 /path/to/fish-assistant 是 fish-assistant 项目的根目录"
+        return 1
+    end
+
+    set -l base_dir $FISH_ASSISTANT_HOME
     set -l fish_config_dir ~/.config/fish
 
     # 子命令解析
@@ -80,7 +90,13 @@ function fa --description 'Fish Assistant - manage fish functions and plugins'
 end
 
 function _fa_plugin_add --argument-names plugin_name
-    set -l base_dir $STUDIO_HOME/scripts/fish
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l base_dir $FISH_ASSISTANT_HOME
     set -l plugin_dir $base_dir/plugins/$plugin_name
 
     if test -d $plugin_dir
@@ -103,7 +119,13 @@ function _fa_plugin_add --argument-names plugin_name
 end
 
 function _fa_plugin_map --argument-names plugin_name
-    set -l base_dir $STUDIO_HOME/scripts/fish
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l base_dir $FISH_ASSISTANT_HOME
     set -l fish_config_dir ~/.config/fish
     set -l plugin_dir $base_dir/plugins/$plugin_name
 
@@ -160,7 +182,13 @@ function _fa_plugin_map --argument-names plugin_name
 end
 
 function _fa_map --argument-names type file
-    set -l base_dir $STUDIO_HOME/scripts/fish
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l base_dir $FISH_ASSISTANT_HOME
     set -l fish_config_dir ~/.config/fish
 
     switch $type
@@ -335,7 +363,7 @@ function _fa_help
     echo "用法:"
     echo "  fa plugin add <name>     创建新插件目录结构"
     echo "  fa plugin map <name>     映射插件中的所有文件"
-    echo "  fa map <type> <file>     创建单个文件的软链接"
+    echo "  fa map <type> <file>     创建单个文件的硬链接"
     echo "  fa list                  列出所有已创建的链接"
     echo "  fa check                 检查链接状态"
     echo "  fa clean                 清理失效的链接"

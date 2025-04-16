@@ -34,7 +34,12 @@ function __fish_fa_needs_file
 end
 
 function __fish_fa_list_files --argument-names type
-    set -l base_dir $STUDIO_HOME/scripts/fish
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        return 1
+    end
+
+    set -l base_dir $FISH_ASSISTANT_HOME
     set -l dir
     switch $type
         case functions
@@ -61,7 +66,12 @@ function __fish_fa_list_files --argument-names type
 end
 
 function __fish_fa_list_plugins
-    set -l plugins_dir $STUDIO_HOME/scripts/fish/plugins
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        return 1
+    end
+
+    set -l plugins_dir $FISH_ASSISTANT_HOME/plugins
     if test -d "$plugins_dir"
         command ls -1 "$plugins_dir" 2>/dev/null
     end
