@@ -333,46 +333,56 @@ function _brow_pod_cleanup
         set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // ""')
         set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // ""')
         set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
+        set -l pod_status (echo $pod_json | jq -r '.status.phase')
 
-        # 如果没有创建时间或TTL，跳过
-        if test -z "$created_at" -o -z "$ttl"
-            continue
+        # 检查Pod是否应该被清理
+        set -l should_cleanup false
+
+        # 情况1: Pod处于错误或失败状态
+        if test "$pod_status" = "Failed" -o "$pod_status" = "Error"
+            set should_cleanup true
         end
 
-        # 计算过期时间
-        set -l created_time (_brow_parse_time "$created_at")
-        set -l ttl_seconds (_brow_parse_duration $ttl)
+        # 情况2: Pod已过期
+        if test -n "$created_at" -a -n "$ttl"
+            set -l created_time (_brow_parse_time "$created_at")
+            set -l ttl_seconds (_brow_parse_duration $ttl)
 
-        if test $created_time -gt 0 -a $ttl_seconds -gt 0
-            set -l expiry_time (math $created_time + $ttl_seconds)
+            if test $created_time -gt 0 -a $ttl_seconds -gt 0
+                set -l expiry_time (math $created_time + $ttl_seconds)
 
-            # 如果已过期，删除Pod
-            if test $now -gt $expiry_time
-                # 获取上下文
-                set -l k8s_context "" # 默认为空
-                if test "$config_name" != "未知"
-                    set -l config_data (_brow_config_get $config_name 2>/dev/null)
-                    if test $status -eq 0
-                        set k8s_context (echo $config_data | jq -r '.k8s_context')
-                    end
+                if test $now -gt $expiry_time
+                    set should_cleanup true
                 end
-
-                # 如果没有上下文，使用当前上下文
-                if test -z "$k8s_context"
-                    set k8s_context (kubectl config current-context)
-                end
-
-                echo "删除过期的Pod: $pod_name"
-                kubectl --context=$k8s_context delete pod $pod_name >/dev/null 2>&1
-                set expired_pods (math $expired_pods + 1)
             end
+        end
+
+        # 如果需要清理，删除Pod
+        if test "$should_cleanup" = "true"
+            # 获取上下文
+            set -l k8s_context "" # 默认为空
+            if test "$config_name" != "未知"
+                set -l config_data (_brow_config_get $config_name 2>/dev/null)
+                if test $status -eq 0
+                    set k8s_context (echo $config_data | jq -r '.k8s_context')
+                end
+            end
+
+            # 如果没有上下文，使用当前上下文
+            if test -z "$k8s_context"
+                set k8s_context (kubectl config current-context)
+            end
+
+            echo "删除Pod: $pod_name"
+            kubectl --context=$k8s_context delete pod $pod_name >/dev/null 2>&1
+            set expired_pods (math $expired_pods + 1)
         end
     end
 
     if test $expired_pods -eq 0
-        echo "没有找到过期的Pod"
+        echo "没有找到需要清理的Pod"
     else
-        echo "已删除 $expired_pods 个过期的Pod"
+        echo "已删除 $expired_pods 个Pod"
     end
 end
 
