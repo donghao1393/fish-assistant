@@ -35,7 +35,8 @@ kind: Pod
 metadata:
   name: $pod_name
   labels:
-    app: brow-$config_name
+    app: brow
+    brow-config: $config_name
     brow-service: $service_name
   annotations:
     brow.created-at: \"$created_time\"
@@ -93,8 +94,8 @@ function _brow_pod_list
     # 列出当前所有Pod
 
     # 检查是否有brow Pod
-    set -l pod_count (kubectl get pods 2>/dev/null | grep "brow-" | wc -l)
-    set -l pod_count (string trim $pod_count)
+    set -l pod_names (kubectl get pods -o=name 2>/dev/null | grep "pod/brow-" || echo "")
+    set -l pod_count (count $pod_names)
 
     if test "$pod_count" = "0"
         echo "没有找到活跃的brow Pod"
@@ -112,7 +113,7 @@ function _brow_pod_list
     set -l pods_json (kubectl get pods --output=json)
 
     # 使用jq提取所有brow Pod的信息
-    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' | grep "^brow-")
+    set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name')
 
     # 处理每个Pod
     for pod_name in $pod_names
@@ -171,7 +172,7 @@ function _brow_pod_info --argument-names pod_id
     set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "未知"')
     set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "未知"')
     set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "未知"')
-    set -l status (echo $pod_json | jq -r '.status.phase')
+    set -l pod_status (echo $pod_json | jq -r '.status.phase')
     set -l node (echo $pod_json | jq -r '.spec.nodeName // "未知"')
     set -l ip (echo $pod_json | jq -r '.status.podIP // "未知"')
     set -l container_status (echo $pod_json | jq -r '.status.containerStatuses[0].ready')
@@ -212,7 +213,7 @@ function _brow_pod_info --argument-names pod_id
     echo "  创建时间: $created_at"
     echo "  TTL: $ttl"
     echo "  剩余时间: $remaining_time"
-    echo "  状态: $status"
+    echo "  状态: $pod_status"
     echo "  节点: $node"
     echo "  Pod IP: $ip"
     echo "  容器就绪: $container_status"
@@ -308,7 +309,7 @@ function _brow_pod_delete --argument-names pod_id
 
     # 删除Pod
     echo "正在删除Pod '$pod_id'..."
-    kubectl --context=$k8s_context delete pod $pod_id >/dev/null
+    kubectl --context=$k8s_context delete pod $pod_id --grace-period=0 --force >/dev/null
 
     if test $status -eq 0
         echo "Pod '$pod_id' 已删除"
@@ -325,7 +326,7 @@ function _brow_pod_cleanup
 
     # 获取所有brow Pod的名称
     set -l pods_json (kubectl get pods --output=json)
-    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' | grep "^brow-")
+    set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name')
 
     if test -z "$pod_names"
         echo "没有找到brow Pod"
@@ -385,7 +386,7 @@ function _brow_pod_cleanup
             end
 
             echo "删除Pod: $pod_name"
-            kubectl --context=$k8s_context delete pod $pod_name >/dev/null 2>&1
+            kubectl --context=$k8s_context delete pod $pod_name --grace-period=0 --force >/dev/null 2>&1
             set expired_pods (math $expired_pods + 1)
         end
     end
