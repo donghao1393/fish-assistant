@@ -92,10 +92,11 @@ end
 function _brow_pod_list
     # 列出当前所有Pod
 
-    # 获取所有带有brow标签的Pod
-    set -l pods_json (kubectl get pods --selector=app 2>/dev/null | grep brow- || echo "")
+    # 检查是否有brow Pod
+    set -l pod_count (kubectl get pods --selector=app=brow 2>/dev/null | grep -v NAME | wc -l)
+    set -l pod_count (string trim $pod_count)
 
-    if test -z "$pods_json"
+    if test "$pod_count" = "0"
         echo "没有找到活跃的brow Pod"
         return 0
     end
@@ -107,17 +108,23 @@ function _brow_pod_list
     printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" "Pod名称" "配置" "服务" "创建时间" "TTL" "状态"
     printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" "------------------------------" "---------------" "---------------" "---------------" "---------------" "---------------"
 
-    # 获取所有Pod的详细信息
-    set -l all_pods (kubectl get pods --selector=app --output=json | jq -r '.items[] | select(.metadata.name | startswith("brow-"))')
+    # 获取所有Pod的JSON数据
+    set -l pods_json (kubectl get pods --selector=app=brow --output=json)
+
+    # 使用jq提取所有brow Pod的信息
+    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name')
 
     # 处理每个Pod
-    for pod_json in $all_pods
-        set -l pod_name (echo $pod_json | jq -r '.metadata.name')
+    for pod_name in $pod_names
+        # 获取单个Pod的详细信息
+        set -l pod_json (kubectl get pod $pod_name -o json)
+
+        # 提取Pod信息
         set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
         set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "未知"')
         set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "未知"')
         set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "未知"')
-        set -l status (echo $pod_json | jq -r '.status.phase')
+        set -l pod_status (echo $pod_json | jq -r '.status.phase')
 
         # 格式化创建时间
         if test "$created_at" != "未知"
@@ -143,7 +150,7 @@ function _brow_pod_list
             end
         end
 
-        printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" $pod_name $config_name $service_name $created_at $ttl $status
+        printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" $pod_name $config_name $service_name $created_at $ttl $pod_status
     end
 end
 
@@ -316,10 +323,11 @@ function _brow_pod_cleanup
 
     echo "正在检查过期的Pod..."
 
-    # 获取所有带有brow标签的Pod
-    set -l all_pods (kubectl get pods --selector=app --output=json | jq -r '.items[] | select(.metadata.name | startswith("brow-"))')
+    # 获取所有brow Pod的名称
+    set -l pods_json (kubectl get pods --selector=app=brow --output=json)
+    set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name')
 
-    if test -z "$all_pods"
+    if test -z "$pod_names"
         echo "没有找到brow Pod"
         return 0
     end
@@ -328,8 +336,11 @@ function _brow_pod_cleanup
     set -l expired_pods 0
 
     # 处理每个Pod
-    for pod_json in $all_pods
-        set -l pod_name (echo $pod_json | jq -r '.metadata.name')
+    for pod_name in $pod_names
+        # 获取单个Pod的详细信息
+        set -l pod_json (kubectl get pod $pod_name -o json)
+
+        # 提取Pod信息
         set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // ""')
         set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // ""')
         set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
