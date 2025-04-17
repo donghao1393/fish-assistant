@@ -272,7 +272,9 @@ function _brow_pod_info --argument-names pod_id_or_config
         set pod_id $pod_id_or_config
 
         # 检查Pod是否存在
-        if not kubectl get pod $pod_id >/dev/null 2>&1
+        # 使用当前上下文
+        set -l k8s_context (kubectl config current-context)
+        if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
             echo "错误: Pod '$pod_id' 不存在"
             return 1
         end
@@ -419,7 +421,9 @@ function _brow_pod_delete --argument-names pod_id_or_config
         set pod_id $pod_id_or_config
 
         # 检查Pod是否存在
-        if not kubectl get pod $pod_id >/dev/null 2>&1
+        # 使用当前上下文
+        set -l k8s_context (kubectl config current-context)
+        if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
             echo "错误: Pod '$pod_id' 不存在"
             return 1
         end

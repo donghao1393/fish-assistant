@@ -107,6 +107,7 @@ complete -c brow -f -n __brow_needs_command -a stop -d 停止连接
 complete -c brow -f -n __brow_needs_command -a config -d 管理连接配置
 complete -c brow -f -n __brow_needs_command -a pod -d "管理Kubernetes Pod"
 complete -c brow -f -n __brow_needs_command -a forward -d "管理端口转发 (高级功能)"
+complete -c brow -f -n __brow_needs_command -a health-check -d 检查和修复不一致的状态
 complete -c brow -f -n __brow_needs_command -a version -d 显示版本信息
 complete -c brow -f -n __brow_needs_command -a help -d 显示帮助信息
 

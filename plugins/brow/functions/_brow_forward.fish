@@ -71,6 +71,12 @@ function _brow_forward_start --argument-names config_name local_port
         return 1
     end
 
+    # 验证Pod是否存在
+    if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
+        echo "错误: Pod '$pod_id' 不存在，可能创建失败或已被删除" >&2
+        return 1
+    end
+
     echo "获取到Pod名称: $pod_id" >&2
 
     # 生成唯一的转发ID
@@ -190,14 +196,44 @@ function _brow_forward_list
         # 检查进程是否仍在运行
         set -l forward_status 已停止
         set -l status_color red
-        if kill -0 $pid 2>/dev/null
-            set forward_status 活跃
-            set status_color green
-        else
+
+        # 首先检查进程是否仍在运行
+        if not kill -0 $pid 2>/dev/null
             # 如果进程不存在，删除记录文件
+            echo "清理失效的转发记录: $forward_id ($config_name)" >&2
             rm $file 2>/dev/null
             continue
         end
+
+        # 然后检查Pod是否仍然存在
+        # 获取配置中的上下文
+        set -l k8s_context ""
+        if test "$config_name" != unknown
+            set -l config_data (_brow_config_get $config_name 2>/dev/null)
+            if test $status -eq 0
+                set k8s_context (echo $config_data | jq -r '.k8s_context')
+            end
+        end
+
+        # 如果没有上下文，使用当前上下文
+        if test -z "$k8s_context"
+            set k8s_context (kubectl config current-context)
+        end
+
+        # 检查Pod是否存在
+        if test "$pod_id" != unknown -a "$pod_id" != ""
+            if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
+                # 如果Pod不存在，停止转发进程并删除记录文件
+                echo "发现转发对应的Pod不存在: $pod_id, 正在清理..." >&2
+                kill $pid 2>/dev/null
+                rm $file 2>/dev/null
+                continue
+            end
+        end
+
+        # 如果进程和Pod都存在，标记为活跃
+        set forward_status 活跃
+        set status_color green
 
         # 使用颜色输出状态
         printf "%-10s %-15s %-15s %-15s %-10s " $forward_id $config_name $local_port $remote_port $pid

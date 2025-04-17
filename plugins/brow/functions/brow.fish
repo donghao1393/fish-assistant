@@ -215,6 +215,20 @@ function brow --description "Kubernetes 连接管理工具"
             # 直接调用_brow_connect函数
             _brow_connect $config_name $local_port
 
+        case health-check
+            # 检查和修复不一致的状态
+            echo "正在进行健康检查..."
+
+            # 检查转发记录
+            echo "检查转发记录..."
+            _brow_forward_list >/dev/null
+
+            # 检查过期的Pod
+            echo "检查过期的Pod..."
+            _brow_pod_cleanup
+
+            echo 健康检查完成
+
         case version
             echo "brow v$brow_version"
 
@@ -251,6 +265,7 @@ function _brow_help
     echo "  brow forward list                 列出活跃的转发 (同 brow list)"
     echo "  brow forward stop <ID|配置名称>    停止转发 (不删除Pod)"
     echo "  brow forward start <配置名称> [本地端口]  开始端口转发 (同 brow connect)"
+    echo "  brow health-check                  检查和修复不一致的状态"
     echo "  brow version                      显示版本信息"
     echo "  brow help                         显示此帮助信息"
     echo
@@ -286,8 +301,13 @@ function _brow_connect --argument-names config_name local_port
         set -l backup_port (math $local_port + 1000)
         echo "尝试端口: $backup_port"
         set -l backup_id (_brow_forward_start $config_name $backup_port)
-        if test $status -eq 0
+        set -l backup_status $status
+
+        if test $backup_status -eq 0
             echo "转发ID: $backup_id"
+        else
+            echo "错误: 无法创建连接，请检查配置和网络状态"
+            return 1
         end
     else
         echo "转发ID: $forward_id"

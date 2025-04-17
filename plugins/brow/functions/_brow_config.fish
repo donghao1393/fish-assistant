@@ -3,7 +3,7 @@ function _brow_config_exists --argument-names config_name
     set -l config_file ~/.config/brow/config.json
     set -l exists (jq -r "has(\"$config_name\")" $config_file)
 
-    if test "$exists" = "true"
+    if test "$exists" = true
         return 0
     else
         return 1
@@ -36,8 +36,8 @@ function _brow_config_add
     set -l ip $argv[3]
     set -l local_port 5433 # 默认本地端口
     set -l remote_port 5432 # 默认远程端口
-    set -l service_name "service" # 默认服务名称
-    set -l ttl "30m" # 默认TTL
+    set -l service_name service # 默认服务名称
+    set -l ttl 30m # 默认TTL
 
     # 如果提供了第四个参数，设置为本地端口
     if test (count $argv) -ge 4
@@ -73,7 +73,7 @@ function _brow_config_add
 
     # 将新配置添加到配置文件
     set -l temp_file (mktemp)
-    jq ".[\"$config_name\"] = $config_json" $config_file > $temp_file
+    jq ".[\"$config_name\"] = $config_json" $config_file >$temp_file
     mv $temp_file $config_file
 
     echo "配置 '$config_name' 已添加:"
@@ -104,8 +104,8 @@ function _brow_config_list
     set -l config_names (jq -r 'keys[]' $config_file)
 
     # 打印表头
-    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" "名称" "Kubernetes上下文" "IP" "本地端口" "远程端口" "服务名称" "TTL"
-    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" "--------------------" "------------------------------" "---------------" "----------" "----------" "---------------" "----------"
+    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" 名称 Kubernetes上下文 IP 本地端口 远程端口 服务名称 TTL
+    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" -------------------- ------------------------------ --------------- ---------- ---------- --------------- ----------
 
     # 打印每个配置
     for name in $config_names
@@ -147,7 +147,9 @@ function _brow_config_show --argument-names config_name
     echo "  TTL: $ttl"
 
     # 检查是否有活跃的Pod
-    set -l active_pods (kubectl get pods --selector=app=brow-$config_name -o json | jq -r '.items[].metadata.name')
+    # 获取配置中的上下文
+    set -l k8s_context (echo $config_data | jq -r '.k8s_context')
+    set -l active_pods (kubectl --context=$k8s_context get pods --selector=app=brow-$config_name -o json 2>/dev/null | jq -r '.items[].metadata.name')
 
     if test -n "$active_pods"
         echo
@@ -225,12 +227,12 @@ function _brow_config_edit --argument-names config_name
     if test "$current_json" != "$config_json"
         # 更新配置文件
         set -l temp_file (mktemp)
-        jq ".[\"$config_name\"] = $config_json" $config_file > $temp_file
+        jq ".[\"$config_name\"] = $config_json" $config_file >$temp_file
         mv $temp_file $config_file
 
         echo "配置 '$config_name' 已更新"
     else
-        echo "配置未变化"
+        echo 配置未变化
     end
 end
 
@@ -243,7 +245,10 @@ function _brow_config_remove --argument-names config_name
     end
 
     # 检查是否有活跃的Pod
-    set -l active_pods (kubectl get pods --selector=app=brow-$config_name -o json 2>/dev/null | jq -r '.items[].metadata.name')
+    # 获取配置中的上下文
+    set -l config_data (_brow_config_get $config_name)
+    set -l k8s_context (echo $config_data | jq -r '.k8s_context')
+    set -l active_pods (kubectl --context=$k8s_context get pods --selector=app=brow-$config_name -o json 2>/dev/null | jq -r '.items[].metadata.name')
 
     if test -n "$active_pods"
         echo "警告: 配置 '$config_name' 有活跃的Pod:"
@@ -253,8 +258,8 @@ function _brow_config_remove --argument-names config_name
 
         read -l -P "是否仍要删除配置? [y/N]: " confirm
 
-        if test "$confirm" != "y" -a "$confirm" != "Y"
-            echo "操作已取消"
+        if test "$confirm" != y -a "$confirm" != Y
+            echo 操作已取消
             return 1
         end
     end
@@ -263,7 +268,7 @@ function _brow_config_remove --argument-names config_name
     set -l config_file ~/.config/brow/config.json
     set -l temp_file (mktemp)
 
-    jq "del(.[\"$config_name\"])" $config_file > $temp_file
+    jq "del(.[\"$config_name\"])" $config_file >$temp_file
     mv $temp_file $config_file
 
     echo "配置 '$config_name' 已删除"
