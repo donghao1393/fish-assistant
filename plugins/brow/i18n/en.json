@@ -1,0 +1,61 @@
+{
+  "pod_list_title": "Active brow Pods:",
+  "pod_name": "Pod Name",
+  "config": "Config",
+  "service": "Service",
+  "created_at": "Created At",
+  "ttl": "TTL",
+  "status": "Status",
+  "context": "Context",
+  "no_pods_found": "No active brow Pods found",
+
+  "forward_list_title": "Port Forwarding List:",
+  "id": "ID",
+  "local_port": "Local Port",
+  "remote_port": "Remote Port",
+  "pid": "PID",
+  "forward_status_active": "Active",
+  "forward_status_stopped": "Stopped",
+
+  "error_pod_not_found": "Error: Pod '%s' does not exist",
+  "error_config_not_found": "Error: Config '%s' does not exist",
+  "error_forward_not_found": "Error: No port forwarding found with ID '%s'",
+  "error_config_no_forwards": "Error: Config '%s' has no active port forwarding",
+
+  "waiting_for_pod": "Waiting for proxy Pod to be ready...",
+  "pod_ready": "Pod '%s' created and ready",
+  "pod_config": "Config: %s",
+  "pod_context": "Kubernetes context: %s",
+  "pod_ip": "IP: %s",
+  "pod_remote_port": "Remote port: %s",
+  "pod_ttl": "TTL: %s",
+
+  "forward_started": "Port forwarding started: localhost:%s -> %s:%s (ID: %s)",
+  "forward_id": "Forward ID: %s",
+  "forward_stopped": "Port forwarding stopped",
+  "forward_stopping": "Stopping port forwarding: localhost:%s -> %s:%s (PID: %s)",
+
+  "pod_deleted": "Pod '%s' deleted",
+  "pod_delete_failed": "Error: Failed to delete Pod '%s'",
+  "pod_deleting": "Deleting Pod '%s'...",
+
+  "operation_cancelled": "Operation cancelled",
+  "cleaning_up": "Cleaning up...",
+
+  "config_list_title": "brow Configurations:",
+  "config_name": "Config Name",
+  "k8s_context": "Kubernetes Context",
+  "remote_host": "Remote Host",
+  "config_remote_port": "Remote Port",
+  "config_local_port": "Local Port",
+  "no_configs_found": "No brow configurations found",
+
+  "config_created": "Config '%s' created",
+  "config_updated": "Config '%s' updated",
+  "config_deleted": "Config '%s' deleted",
+
+  "language_set": "Language set to: %s",
+  "language_current": "Current language: %s",
+  "language_not_supported": "Unsupported language: %s",
+  "available_languages": "Available languages: %s"
+}

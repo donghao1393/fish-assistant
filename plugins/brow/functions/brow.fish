@@ -9,6 +9,7 @@ if status is-interactive
     source $script_dir/_brow_pod.fish
     source $script_dir/_brow_forward.fish
     source $script_dir/_brow_parse_time.fish
+    source $script_dir/_brow_i18n.fish
 end
 
 function brow --description "Kubernetes 连接管理工具"
@@ -229,6 +230,39 @@ function brow --description "Kubernetes 连接管理工具"
 
             echo 健康检查完成
 
+        case language
+            if test (count $argv) -lt 1
+                # 显示当前语言
+                _brow_i18n_init
+                echo (_brow_i18n_format "language_current" $_brow_i18n_current_lang)
+                echo (_brow_i18n_format "available_languages" (_brow_i18n_get_available_languages))
+                return 0
+            end
+
+            set -l subcmd $argv[1]
+            set -e argv[1]
+
+            switch $subcmd
+                case set
+                    if test (count $argv) -ne 1
+                        echo "Usage: brow language set <language-code>"
+                        echo "Available languages: "(_brow_i18n_get_available_languages)
+                        return 1
+                    end
+
+                    set -l lang $argv[1]
+                    if _brow_i18n_set_language $lang
+                        echo (_brow_i18n_format "language_set" $lang)
+                    else
+                        echo (_brow_i18n_format "language_not_supported" $lang)
+                        return 1
+                    end
+                case '*'
+                    echo "Unknown language subcommand: $subcmd"
+                    echo "Available subcommands: set"
+                    return 1
+            end
+
         case version
             echo "brow v$brow_version"
 
@@ -266,6 +300,8 @@ function _brow_help
     echo "  brow forward stop <ID|配置名称>    停止转发 (不删除Pod)"
     echo "  brow forward start <配置名称> [本地端口]  开始端口转发 (同 brow connect)"
     echo "  brow health-check                  检查和修复不一致的状态"
+    echo "  brow language                     显示当前语言设置"
+    echo "  brow language set <语言代码>      设置语言 (zh, en, ...)"
     echo "  brow version                      显示版本信息"
     echo "  brow help                         显示此帮助信息"
     echo

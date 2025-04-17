@@ -1,0 +1,61 @@
+{
+  "pod_list_title": "活跃的brow Pod:",
+  "pod_name": "Pod名称",
+  "config": "配置",
+  "service": "服务",
+  "created_at": "创建时间",
+  "ttl": "TTL",
+  "status": "状态",
+  "context": "上下文",
+  "no_pods_found": "没有找到活跃的brow Pod",
+
+  "forward_list_title": "端口转发列表:",
+  "id": "ID",
+  "local_port": "本地端口",
+  "remote_port": "远程端口",
+  "pid": "PID",
+  "forward_status_active": "活跃",
+  "forward_status_stopped": "已停止",
+
+  "error_pod_not_found": "错误: Pod '%s' 不存在",
+  "error_config_not_found": "错误: 配置 '%s' 不存在",
+  "error_forward_not_found": "错误: 未找到ID为 '%s' 的端口转发",
+  "error_config_no_forwards": "错误: 配置 '%s' 没有活跃的端口转发",
+
+  "waiting_for_pod": "等待代理Pod就绪...",
+  "pod_ready": "Pod '%s' 已创建并就绪",
+  "pod_config": "配置: %s",
+  "pod_context": "Kubernetes上下文: %s",
+  "pod_ip": "IP: %s",
+  "pod_remote_port": "远程端口: %s",
+  "pod_ttl": "TTL: %s",
+
+  "forward_started": "端口转发已启动: localhost:%s -> %s:%s (ID: %s)",
+  "forward_id": "转发ID: %s",
+  "forward_stopped": "端口转发已停止",
+  "forward_stopping": "停止端口转发: localhost:%s -> %s:%s (PID: %s)",
+
+  "pod_deleted": "Pod '%s' 已删除",
+  "pod_delete_failed": "错误: 删除Pod '%s' 失败",
+  "pod_deleting": "正在删除Pod '%s'...",
+
+  "operation_cancelled": "操作已取消",
+  "cleaning_up": "正在清理...",
+
+  "config_list_title": "brow配置列表:",
+  "config_name": "配置名称",
+  "k8s_context": "Kubernetes上下文",
+  "remote_host": "远程主机",
+  "config_remote_port": "远程端口",
+  "config_local_port": "本地端口",
+  "no_configs_found": "没有找到brow配置",
+
+  "config_created": "配置 '%s' 已创建",
+  "config_updated": "配置 '%s' 已更新",
+  "config_deleted": "配置 '%s' 已删除",
+
+  "language_set": "语言已设置为: %s",
+  "language_current": "当前语言: %s",
+  "language_not_supported": "不支持的语言: %s",
+  "available_languages": "可用语言: %s"
+}
