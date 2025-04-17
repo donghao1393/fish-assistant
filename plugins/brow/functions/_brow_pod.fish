@@ -116,11 +116,17 @@ spec:
 end
 
 function _brow_pod_list
-    # 列出所有上下文中的Pod
-    echo "正在查询所有Kubernetes上下文中的Pod..."
+    # 列出配置中指定的上下文中的Pod
+    echo "正在查询brow Pod..."
 
-    # 获取所有上下文
-    set -l contexts (kubectl config get-contexts --output=name)
+    # 获取配置中的上下文
+    set -l config_file ~/.config/brow/config.json
+    set -l contexts (jq -r '.[] | .k8s_context' $config_file | sort -u)
+
+    # 如果没有配置，使用当前上下文
+    if test -z "$contexts"
+        set contexts (kubectl config current-context)
+    end
 
     # 初始化计数器
     set -l total_pods 0
@@ -130,26 +136,28 @@ function _brow_pod_list
 
     # 打印表头
     printf "%-30s %-15s %-15s %-15s %-15s %-15s %-15s\n" Pod名称 配置 服务 创建时间 TTL 状态 上下文
-    printf "%-30s %-15s %-15s %-15s %-15s %-15s %-15s\n" ------------------------------ --------------- --------------- --------------- --------------- --------------- ---------------
 
-    # 遍历所有上下文
+    # 遍历配置中的上下文
     for ctx in $contexts
-        # 获取当前上下文中的所有Pod
-        set -l pods_json (kubectl --context=$ctx get pods --output=json 2>/dev/null)
+        # 获取当前上下文中的brow Pod
+        set -l pods_json (kubectl --context=$ctx get pods -l app=brow --output=json 2>/dev/null)
         if test $status -ne 0
             continue
         end
 
-        # 使用jq提取所有brow Pod的信息
-        set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name' 2>/dev/null)
+        # 使用jq提取Pod的信息
+        set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' 2>/dev/null)
+        if test -z "$pod_names"
+            continue
+        end
 
         # 处理每个Pod
         for pod_name in $pod_names
             # 增加计数器
             set total_pods (math $total_pods + 1)
 
-            # 获取单个Pod的详细信息
-            set -l pod_json (kubectl --context=$ctx get pod $pod_name -o json 2>/dev/null)
+            # 提取Pod信息，使用已经获取的pods_json数据
+            set -l pod_json (echo $pods_json | jq -r ".items[] | select(.metadata.name == \"$pod_name\")")
 
             # 提取Pod信息
             set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
@@ -363,32 +371,38 @@ function _brow_pod_cleanup
 
     echo "正在检查过期的Pod..."
 
-    # 获取所有上下文
-    set -l contexts (kubectl config get-contexts --output=name)
-    set -l total_expired_pods 0
+    # 获取配置中的上下文
+    set -l config_file ~/.config/brow/config.json
+    set -l contexts (jq -r '.[] | .k8s_context' $config_file | sort -u)
 
-    # 遍历所有上下文
+    # 如果没有配置，使用当前上下文
+    if test -z "$contexts"
+        set contexts (kubectl config current-context)
+    end
+
+    set -l total_expired_pods 0
+    set -l now (date +%s)
+
+    # 遍历配置中的上下文
     for k8s_context in $contexts
-        # 获取当前上下文中的所有Pod
-        set -l pods_json (kubectl --context=$k8s_context get pods --output=json 2>/dev/null)
+        # 获取当前上下文中的brow Pod
+        set -l pods_json (kubectl --context=$k8s_context get pods -l app=brow --output=json 2>/dev/null)
         if test $status -ne 0
             continue
         end
 
-        # 使用jq提取所有brow Pod的信息
-        set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name' 2>/dev/null)
-
+        # 使用jq提取Pod的信息
+        set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' 2>/dev/null)
         if test -z "$pod_names"
             continue
         end
 
-        set -l now (date +%s)
         set -l context_expired_pods 0
 
         # 处理每个Pod
         for pod_name in $pod_names
-            # 获取单个Pod的详细信息
-            set -l pod_json (kubectl --context=$k8s_context get pod $pod_name -o json 2>/dev/null)
+            # 提取Pod信息，使用已经获取的pods_json数据
+            set -l pod_json (echo $pods_json | jq -r ".items[] | select(.metadata.name == \"$pod_name\")")
 
             # 提取Pod信息
             set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // ""')

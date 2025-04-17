@@ -34,24 +34,33 @@ function __brow_config_names
 end
 
 function __brow_pod_ids
-    # 获取所有上下文
-    set -l contexts (kubectl config get-contexts --output=name 2>/dev/null)
+    # 获取配置中的上下文
+    set -l config_file ~/.config/brow/config.json
+    set -l contexts (jq -r '.[] | .k8s_context' $config_file | sort -u 2>/dev/null)
 
-    # 遍历所有上下文
+    # 如果没有配置，使用当前上下文
+    if test -z "$contexts"
+        set contexts (kubectl config current-context 2>/dev/null)
+    end
+
+    # 遍历配置中的上下文
     for ctx in $contexts
-        # 获取当前上下文中的所有Pod
-        set -l pods_json (kubectl --context=$ctx get pods --output=json 2>/dev/null)
+        # 获取当前上下文中的brow Pod
+        set -l pods_json (kubectl --context=$ctx get pods -l app=brow --output=json 2>/dev/null)
         if test $status -ne 0
             continue
         end
 
-        # 使用jq提取所有brow Pod的信息
-        set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name' 2>/dev/null)
+        # 使用jq提取Pod的信息
+        set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' 2>/dev/null)
+        if test -z "$pod_names"
+            continue
+        end
 
         # 处理每个Pod
         for pod_name in $pod_names
-            # 获取单个Pod的详细信息
-            set -l pod_json (kubectl --context=$ctx get pod $pod_name -o json 2>/dev/null)
+            # 提取Pod信息，使用已经获取的pods_json数据
+            set -l pod_json (echo $pods_json | jq -r ".items[] | select(.metadata.name == \"$pod_name\")")
 
             # 提取Pod信息
             set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
@@ -64,6 +73,19 @@ function __brow_pod_ids
             set -l description "$config_name ($short_ctx) [$pod_status]"
             echo $pod_name\t$description
         end
+    end
+
+    # 添加配置名称作为可选项，以便直接创建Pod
+    set -l config_names (jq -r 'keys[]' $config_file 2>/dev/null)
+    for config_name in $config_names
+        # 获取配置信息
+        set -l config_data (jq -r ".[\"$config_name\"]" $config_file)
+        set -l k8s_context (echo $config_data | jq -r '.k8s_context')
+        set -l short_ctx (echo $k8s_context | string replace -r '.*/' '')
+
+        # 输出格式：配置名称\t配置 (上下文) [创建Pod]
+        set -l description "$config_name ($short_ctx) [创建Pod]"
+        echo $config_name\t$description
     end
 end
 
