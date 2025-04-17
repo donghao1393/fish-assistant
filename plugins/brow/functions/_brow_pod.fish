@@ -14,6 +14,29 @@ function _brow_pod_create --argument-names config_name
     set -l service_name (echo $config_data | jq -r '.service_name')
     set -l ttl (echo $config_data | jq -r '.ttl')
 
+    # 检查是否已经有该配置的Pod在运行
+    echo -n "检查是否已有运行中的Pod... "
+    set -l existing_pods (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null | jq -r '.items[] | select(.status.phase == "Running") | .metadata.name')
+    echo 完成
+
+    # 如果已经有运行中的Pod，直接返回该Pod
+    if test -n "$existing_pods"
+        set -l pod_name $existing_pods[1]
+        echo "发现配置 '$config_name' 的Pod已存在: $pod_name"
+        echo $pod_name
+        return 0
+    end
+
+    # 清理该配置的所有非运行状态的Pod
+    set -l old_pods (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null | jq -r '.items[] | select(.status.phase != "Running") | .metadata.name')
+    if test -n "$old_pods"
+        echo "清理配置 '$config_name' 的旧Pod..."
+        for old_pod in $old_pods
+            echo "  删除Pod: $old_pod"
+            kubectl --context=$k8s_context delete pod $old_pod --grace-period=0 --force >/dev/null 2>&1
+        end
+    end
+
     # 生成随机字符串作为Pod名称的一部分
     set -l rand_str (date +%s%N | shasum | head -c 8)
 
