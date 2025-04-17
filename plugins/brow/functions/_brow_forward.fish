@@ -21,31 +21,27 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
         return 1
     end
 
-    echo "使用Kubernetes上下文: $k8s_context"
-
     # 检查Pod是否存在
     set -l pod_check_output (kubectl --context=$k8s_context get pod $clean_pod_id 2>&1)
     set -l pod_check_status $status
 
     if test $pod_check_status -ne 0
         echo "错误: 在上下文 '$k8s_context' 中找不到Pod '$clean_pod_id'"
-        echo "kubectl输出: $pod_check_output"
 
-        # 尝试列出所有可用的上下文
-        echo "可用的Kubernetes上下文:"
-        kubectl config get-contexts --output=name
+        # 尝试在指定的上下文中查找匹配的Pod
+        set -l matching_pods (kubectl --context=$k8s_context get pods --selector=app=brow -o name 2>/dev/null | string replace "pod/" "")
 
-        # 尝试在所有上下文中查找Pod
-        echo "尝试在所有上下文中查找Pod '$clean_pod_id'..."
-        for ctx in (kubectl config get-contexts --output=name)
-            echo -n "检查上下文 '$ctx'... "
-            if kubectl --context=$ctx get pod $clean_pod_id >/dev/null 2>&1
-                echo "找到了!"
-                echo "建议使用以下命令:"
-                echo "brow forward start $clean_pod_id $local_port $ctx"
-            else
-                echo 未找到
+        if test -n "$matching_pods"
+            echo "在上下文 '$k8s_context' 中找到以下相关Pod:"
+            for pod in $matching_pods
+                echo "  $pod"
             end
+            echo "请使用以下命令连接其中一个:"
+            echo "brow forward start <pod-id> $local_port $k8s_context"
+        else
+            echo "建议先创建Pod，然后再连接:"
+            echo "brow pod create <配置名称>"
+            echo "brow connect <配置名称>"
         end
 
         return 1
@@ -86,8 +82,6 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     # 转发记录文件
     set -l forward_file "$active_dir/forward-$clean_pod_id-$forward_id.json"
 
-    echo "开始端口转发: localhost:$local_port -> $clean_pod_id:$remote_port"
-
     # 启动端口转发进程
     # 将错误输出重定向到临时文件
     set -l error_file (mktemp)
@@ -126,17 +120,7 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     set -l forward_data (jo pod_id=$clean_pod_id local_port=$local_port remote_port=$remote_port pid=$pid config=$config_name)
     echo $forward_data >$forward_file
 
-    echo 端口转发已启动
-    echo "  ID: $forward_id"
-    echo "  本地端口: $local_port"
-    echo "  远程端口: $remote_port"
-    echo "  PID: $pid"
-    echo
-    echo "连接信息："
-    echo "  主机: localhost"
-    echo "  端口: $local_port"
-    echo
-    echo "使用 'brow forward stop $forward_id' 停止转发"
+    echo "端口转发已启动: localhost:$local_port -> $clean_pod_id:$remote_port (ID: $forward_id)"
 
     # 返回转发ID
     echo $forward_id
@@ -163,7 +147,6 @@ function _brow_forward_list
 
     # 打印表头
     printf "%-10s %-30s %-15s %-15s %-10s %-15s %-10s\n" ID Pod 本地端口 远程端口 PID 配置 状态
-    printf "%-10s %-30s %-15s %-15s %-10s %-15s %-10s\n" ---------- ------------------------------ --------------- --------------- ---------- --------------- ----------
 
     # 处理每个转发记录
     for file in $forward_files

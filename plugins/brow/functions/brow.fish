@@ -155,8 +155,62 @@ function brow --description "Kubernetes 连接管理工具"
                     if test (count $argv) -ge 3
                         set k8s_context $argv[3]
                     else
-                        # 否则使用当前上下文
-                        set k8s_context (kubectl config current-context)
+                        # 尝试从配置中获取上下文
+                        # 首先检查Pod是否有关联的配置
+                        set -l pod_config ""
+
+                        # 尝试从当前上下文中获取Pod信息
+                        set -l current_context (kubectl config current-context)
+                        set -l pod_json (kubectl --context=$current_context get pod $pod_id -o json 2>/dev/null)
+
+                        if test $status -eq 0
+                            # 如果Pod存在，获取其配置
+                            set pod_config (echo $pod_json | jq -r '.metadata.annotations."brow.config" // ""')
+
+                            # 如果有配置，使用该配置的上下文
+                            if test -n "$pod_config"
+                                set -l config_data (_brow_config_get $pod_config 2>/dev/null)
+                                if test $status -eq 0
+                                    set k8s_context (echo $config_data | jq -r '.k8s_context')
+                                    # 如果没有指定本地端口，使用配置中的端口
+                                    if test -z "$local_port"
+                                        set local_port (echo $config_data | jq -r '.local_port')
+                                    end
+                                end
+                            end
+                        else
+                            # 如果Pod不存在，尝试从配置名称中查找
+                            # 检查是否有与输入匹配的配置
+                            set -l configs (_brow_config_list)
+                            for config in $configs
+                                if test "$config" = "$pod_id"
+                                    # 如果输入的是配置名称，使用该配置
+                                    set -l config_data (_brow_config_get $config)
+                                    if test $status -eq 0
+                                        set k8s_context (echo $config_data | jq -r '.k8s_context')
+                                        # 如果没有指定本地端口，使用配置中的端口
+                                        if test -z "$local_port"
+                                            set local_port (echo $config_data | jq -r '.local_port')
+                                        end
+                                        # 创建Pod
+                                        set -l pod_output (_brow_pod_create $config)
+                                        if test $status -eq 0
+                                            # 获取最后一行作为Pod名称
+                                            set pod_id (echo $pod_output[-1])
+                                            echo "创建Pod: $pod_id"
+                                            # 等待Pod就绪
+                                            sleep 2
+                                        end
+                                        break
+                                    end
+                                end
+                            end
+                        end
+
+                        # 如果仍然没有上下文，使用当前上下文
+                        if test -z "$k8s_context"
+                            set k8s_context $current_context
+                        end
                     end
 
                     # 直接调用_brow_forward_start函数，并将其输出传递给用户
