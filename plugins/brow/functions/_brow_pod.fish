@@ -15,14 +15,15 @@ function _brow_pod_create --argument-names config_name
     set -l ttl (echo $config_data | jq -r '.ttl')
 
     # 检查是否已经有该配置的Pod在运行
-    echo -n "检查是否已有运行中的Pod... "
+    # 使用stderr输出状态信息，避免影响stdout的返回值
+    echo -n "检查是否已有运行中的Pod... " >&2
     set -l existing_pods (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null | jq -r '.items[] | select(.status.phase == "Running") | .metadata.name')
-    echo 完成
+    echo 完成 >&2
 
     # 如果已经有运行中的Pod，直接返回该Pod
     if test -n "$existing_pods"
         set -l pod_name $existing_pods[1]
-        echo "发现配置 '$config_name' 的Pod已存在: $pod_name"
+        echo "发现配置 '$config_name' 的Pod已存在: $pod_name" >&2
         echo $pod_name
         return 0
     end
@@ -30,9 +31,9 @@ function _brow_pod_create --argument-names config_name
     # 清理该配置的所有非运行状态的Pod
     set -l old_pods (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null | jq -r '.items[] | select(.status.phase != "Running") | .metadata.name')
     if test -n "$old_pods"
-        echo "清理配置 '$config_name' 的旧Pod..."
+        echo "清理配置 '$config_name' 的旧Pod..." >&2
         for old_pod in $old_pods
-            echo "  删除Pod: $old_pod"
+            echo "  删除Pod: $old_pod" >&2
             kubectl --context=$k8s_context delete pod $old_pod --grace-period=0 --force >/dev/null 2>&1
         end
     end
@@ -51,7 +52,7 @@ function _brow_pod_create --argument-names config_name
     # 将TTL转换为秒数
     set -l ttl_seconds (_brow_parse_duration $ttl)
 
-    echo "创建代理Pod..."
+    echo "创建代理Pod..." >&2
 
     # 创建临时YAML文件
     set -l tmp_yaml (mktemp)
@@ -97,8 +98,8 @@ spec:
     set -l apply_status $status
 
     if test $apply_status -ne 0
-        echo "错误: 创建Pod失败"
-        echo "kubectl输出: $apply_output"
+        echo "错误: 创建Pod失败" >&2
+        echo "kubectl输出: $apply_output" >&2
         rm $tmp_yaml
         return 1
     end
@@ -107,31 +108,31 @@ spec:
     rm $tmp_yaml
 
     # 等待Pod就绪
-    echo "等待代理Pod就绪..."
+    echo "等待代理Pod就绪..." >&2
     set -l wait_output (kubectl --context=$k8s_context wait --for=condition=Ready pod/$pod_name --timeout=60s 2>&1)
     set -l wait_status $status
 
     if test $wait_status -ne 0
-        echo "错误: Pod未能在规定时间内就绪"
-        echo "kubectl输出: $wait_output"
+        echo "错误: Pod未能在规定时间内就绪" >&2
+        echo "kubectl输出: $wait_output" >&2
 
         # 获取Pod状态以便调试
-        echo "获取Pod状态..."
-        kubectl --context=$k8s_context describe pod $pod_name
+        echo "获取Pod状态..." >&2
+        kubectl --context=$k8s_context describe pod $pod_name >&2
 
         # 尝试删除Pod，但不要因为删除失败而中断
-        echo "清理Pod..."
+        echo "清理Pod..." >&2
         kubectl --context=$k8s_context delete pod $pod_name --grace-period=0 --force >/dev/null 2>&1
 
         return 1
     end
 
-    echo "Pod '$pod_name' 已创建并就绪"
-    echo "配置: $config_name"
-    echo "Kubernetes上下文: $k8s_context"
-    echo "IP: $ip"
-    echo "远程端口: $remote_port"
-    echo "TTL: $ttl"
+    echo "Pod '$pod_name' 已创建并就绪" >&2
+    echo "配置: $config_name" >&2
+    echo "Kubernetes上下文: $k8s_context" >&2
+    echo "IP: $ip" >&2
+    echo "远程端口: $remote_port" >&2
+    echo "TTL: $ttl" >&2
 
     # 返回Pod名称
     echo $pod_name
