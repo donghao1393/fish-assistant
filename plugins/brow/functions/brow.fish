@@ -177,12 +177,41 @@ function brow --description "Kubernetes 连接管理工具"
                     return 1
             end
 
-        case connect
+        case list # 新增简化命令
+            # 列出活跃的连接，直接调用forward list
+            _brow_forward_list
+
+        case stop
+            # 停止连接，直接调用forward stop
             if test (count $argv) -ne 1
-                echo "用法: brow connect <配置名称>"
+                echo "用法: brow stop <连接ID|配置名称>"
                 return 1
             end
-            _brow_connect $argv[1]
+            _brow_forward_stop $argv[1]
+
+        case connect
+            # 创建连接
+            if test (count $argv) -lt 1
+                echo "用法: brow connect <配置名称> [本地端口]"
+                return 1
+            end
+
+            set -l config_name $argv[1]
+            set -l local_port ""
+
+            if test (count $argv) -ge 2
+                set local_port $argv[2]
+            end
+
+            # 检查配置是否存在
+            if not _brow_config_exists $config_name
+                echo "错误: 配置 '$config_name' 不存在"
+                echo "请使用 'brow config list' 查看可用的配置"
+                return 1
+            end
+
+            # 直接调用_brow_connect函数
+            _brow_connect $config_name $local_port
 
         case version
             echo "brow v$brow_version"
@@ -200,32 +229,35 @@ end
 function _brow_help
     echo "brow - Kubernetes 连接管理工具"
     echo
-    echo "用法:"
+    echo "主要命令:"
+    echo "  brow connect <配置名称> [本地端口]     创建连接到指定配置"
+    echo "  brow list                         列出活跃的连接"
+    echo "  brow stop <连接ID|配置名称>        停止连接"
+    echo
+    echo "配置管理:"
     echo "  brow config add <名称> <Kubernetes上下文> <IP> [本地端口] [远程端口] [服务名称] [TTL]"
     echo "  brow config list                  列出所有配置"
     echo "  brow config show <名称>           显示特定配置详情"
     echo "  brow config edit <名称>           编辑配置"
     echo "  brow config remove <名称>         删除配置"
     echo
+    echo "高级功能:"
     echo "  brow pod list                     列出当前所有 Pod"
     echo "  brow pod cleanup                  清理过期的 Pod"
-    echo
-    echo "  brow forward start <配置名称> [本地端口]  开始端口转发"
-    echo "  brow forward list                 列出活跃的转发"
-    echo "  brow forward stop <forward-id|配置名称>    停止转发"
-    echo
-    echo "  brow connect <配置名称>           一步完成创建 Pod 和转发"
+    echo "  brow forward list                 列出活跃的转发 (同 brow list)"
+    echo "  brow forward stop <ID|配置名称>    停止转发 (同 brow stop)"
+    echo "  brow forward start <配置名称> [本地端口]  开始端口转发 (同 brow connect)"
     echo "  brow version                      显示版本信息"
     echo "  brow help                         显示此帮助信息"
     echo
     echo "示例:"
     echo "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m"
-    echo "  brow connect mysql-dev"
-    echo "  brow forward start mysql-dev"
-    echo "  brow forward stop mysql-dev"
+    echo "  brow connect mysql-dev            # 创建连接"
+    echo "  brow list                         # 查看连接"
+    echo "  brow stop mysql-dev              # 停止连接"
 end
 
-function _brow_connect --argument-names config_name
+function _brow_connect --argument-names config_name local_port
     # 一步完成创建 Pod 和转发
 
     # 先检查配置是否存在
@@ -234,9 +266,11 @@ function _brow_connect --argument-names config_name
         return 1
     end
 
-    # 获取配置中的本地端口
-    set -l config_data (_brow_config_get $config_name)
-    set -l local_port (echo $config_data | jq -r '.local_port')
+    # 如果没有指定本地端口，使用配置中的端口
+    if test -z "$local_port"
+        set -l config_data (_brow_config_get $config_name)
+        set local_port (echo $config_data | jq -r '.local_port')
+    end
 
     # 直接调用_brow_forward_start函数，它会处理Pod的创建和端口转发
     set -l forward_id (_brow_forward_start $config_name $local_port)
