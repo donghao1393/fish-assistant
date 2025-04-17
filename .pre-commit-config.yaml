@@ -1,0 +1,41 @@
+repos:
+  # 基本检查
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace  # 检查行尾空格
+      - id: end-of-file-fixer    # 确保文件以换行符结束
+      - id: check-yaml           # 检查 YAML 文件语法
+      - id: check-json           # 检查 JSON 文件语法
+      - id: check-added-large-files  # 检查是否添加了大文件
+        args: ['--maxkb=500']
+      - id: mixed-line-ending    # 检查混合行结束符
+        args: ['--fix=lf']
+      - id: check-merge-conflict  # 检查合并冲突标记
+      - id: check-executables-have-shebangs  # 检查可执行文件是否有 shebang
+
+  # Fish 脚本检查
+  - repo: https://github.com/codacy/codacy-shellcheck
+    rev: v1.7.1
+    hooks:
+      - id: shellcheck
+        types: [fish]
+        args: ["--shell=sh"]  # ShellCheck 不直接支持 fish，但可以用 sh 模式检查一些基本问题
+
+  # 自定义 Fish 脚本检查
+  - repo: local
+    hooks:
+      - id: fish-syntax-check
+        name: Fish syntax check
+        entry: bash -c 'for file in "$@"; do fish -n "$file" || exit 1; done' --
+        language: system
+        files: '\.fish$'
+        types: [file]
+
+  # Python 代码检查（如果项目中有 Python 代码）
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format

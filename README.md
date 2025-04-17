@@ -101,7 +101,21 @@ $FISH_ASSISTANT_HOME/
         └── completions/
 ```
 
-## 贡献
+## 开发贡献
+
+### 代码质量
+
+本项目使用 pre-commit 来运行代码质量检查。详细信息请参考 [docs/pre-commit.md](docs/pre-commit.md)。
+
+### 如何贡献
+
+1. Fork 本仓库
+2. 在项目目录下创建虚拟环境并安装依赖: `uv venv && uv pip install pre-commit`
+3. 安装 pre-commit hooks: `pre-commit install`
+4. 创建功能分支: `git checkout -b feature/your-feature-name`
+5. 提交更改: `git commit -m "添加新功能"`
+6. 推送到你的 Fork: `git push origin feature/your-feature-name`
+7. 创建 Pull Request
 
 欢迎提交 Issue 和 Pull Request！
 

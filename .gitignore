@@ -10,3 +10,22 @@ plugins/*/data/
 .venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+*.egg-info/
+.installed.cfg
+*.egg
+build/
+dist/
+
+# setuptools
+setuptools-*.pth

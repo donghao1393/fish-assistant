@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fish_assistant"
+version = "0.1.0"
+description = "A tool for managing Fish Shell functions and plugins"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Dong Hao"}
+]
+dependencies = [
+    "pre-commit",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.6",
+]
+
+[tool.ruff]
+# 启用 pycodestyle (E), Pyflakes (F), isort (I)
+select = ["E", "F", "I"]
+ignore = []
+
+# 允许行长度为 100 个字符
+line-length = 100
+
+# 目标 Python 版本
+target-version = "py38"
+
+# 排除一些目录
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+]
+
+[tool.ruff.isort]
+known-first-party = ["fish_assistant"]
+
+[tool.ruff.format]
+# 使用双引号
+quote-style = "double"
+# 缩进为 4 个空格
+indent-style = "space"
+indent-width = 4
+# 行长度
+line-ending = "lf"
