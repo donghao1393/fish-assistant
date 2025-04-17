@@ -425,8 +425,25 @@ function _brow_pod_delete --argument-names pod_id_or_config
         end
     end
 
+    # 获取Pod所在的上下文
+    set -l k8s_context ""
+    if _brow_config_exists $pod_id_or_config
+        set -l config_data (_brow_config_get $pod_id_or_config)
+        set k8s_context (echo $config_data | jq -r '.k8s_context')
+    end
+
+    # 如果没有上下文，使用当前上下文
+    if test -z "$k8s_context"
+        set k8s_context (kubectl config current-context)
+    end
+
     # 获取Pod信息
-    set -l pod_json (kubectl get pod $pod_id -o json)
+    set -l pod_json (kubectl --context=$k8s_context get pod $pod_id -o json 2>/dev/null)
+    if test $status -ne 0
+        echo "错误: 无法获取Pod '$pod_id' 的信息"
+        return 1
+    end
+
     set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
 
     # 检查是否有活跃的端口转发
@@ -459,19 +476,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
         end
     end
 
-    # 获取Pod所在的上下文
-    set -l k8s_context "" # 默认为空
-    if test "$config_name" != 未知
-        set -l config_data (_brow_config_get $config_name)
-        if test $status -eq 0
-            set k8s_context (echo $config_data | jq -r '.k8s_context')
-        end
-    end
-
-    # 如果没有上下文，使用当前上下文
-    if test -z "$k8s_context"
-        set k8s_context (kubectl config current-context)
-    end
+    # 使用前面获取的上下文
 
     # 删除Pod
     echo "正在删除Pod '$pod_id'..."
