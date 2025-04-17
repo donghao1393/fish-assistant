@@ -17,12 +17,12 @@ function brow --description "Kubernetes 连接管理工具"
 
     # 检查依赖
     if not command -v kubectl >/dev/null
-        echo "错误: 未找到 kubectl。请先安装它。"
+        echo (_brow_i18n_get "error_kubectl_not_found")
         return 1
     end
 
     if not command -v jq >/dev/null
-        echo "错误: 未找到 jq。请先安装它。"
+        echo (_brow_i18n_get "error_jq_not_found")
         return 1
     end
 
@@ -162,7 +162,7 @@ function brow --description "Kubernetes 连接管理工具"
 
                     # 如果成功，显示转发ID
                     if test $status -eq 0
-                        echo "转发ID: $forward_id"
+                        echo (_brow_i18n_format "forward_id" $forward_id)
                     end
                 case list
                     _brow_forward_list
@@ -208,8 +208,8 @@ function brow --description "Kubernetes 连接管理工具"
 
             # 检查配置是否存在
             if not _brow_config_exists $config_name
-                echo "错误: 配置 '$config_name' 不存在"
-                echo "请使用 'brow config list' 查看可用的配置"
+                echo (_brow_i18n_format "error_config_not_found" $config_name)
+                echo (_brow_i18n_get "use_config_list")
                 return 1
             end
 
@@ -218,17 +218,17 @@ function brow --description "Kubernetes 连接管理工具"
 
         case health-check
             # 检查和修复不一致的状态
-            echo "正在进行健康检查..."
+            echo (_brow_i18n_get "health_check_start")
 
             # 检查转发记录
-            echo "检查转发记录..."
+            echo (_brow_i18n_get "checking_forwards")
             _brow_forward_list >/dev/null
 
             # 检查过期的Pod
-            echo "检查过期的Pod..."
+            echo (_brow_i18n_get "checking_expired_pods")
             _brow_pod_cleanup
 
-            echo 健康检查完成
+            echo (_brow_i18n_get "health_check_complete")
 
         case language
             if test (count $argv) -lt 1
@@ -317,7 +317,7 @@ function _brow_connect --argument-names config_name local_port
 
     # 先检查配置是否存在
     if not _brow_config_exists $config_name
-        echo "错误: 配置 '$config_name' 不存在"
+        echo (_brow_i18n_format "error_config_not_found" $config_name)
         return 1
     end
 
@@ -332,20 +332,20 @@ function _brow_connect --argument-names config_name local_port
     set -l forward_status $status
 
     if test $forward_status -ne 0
-        echo "尝试使用备用端口..."
+        echo (_brow_i18n_get "trying_backup_port")
         # 尝试使用备用端口
         set -l backup_port (math $local_port + 1000)
-        echo "尝试端口: $backup_port"
+        echo (_brow_i18n_format "trying_port" $backup_port)
         set -l backup_id (_brow_forward_start $config_name $backup_port)
         set -l backup_status $status
 
         if test $backup_status -eq 0
-            echo "转发ID: $backup_id"
+            echo (_brow_i18n_format "forward_id" $backup_id)
         else
-            echo "错误: 无法创建连接，请检查配置和网络状态"
+            echo (_brow_i18n_get "error_connection_failed")
             return 1
         end
     else
-        echo "转发ID: $forward_id"
+        echo (_brow_i18n_format "forward_id" $forward_id)
     end
 end

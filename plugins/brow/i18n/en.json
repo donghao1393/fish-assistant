@@ -23,6 +23,9 @@
   "error_config_exists": "Error: Config '%s' already exists",
   "error_forward_not_found": "Error: No port forwarding found with ID '%s'",
   "error_config_no_forwards": "Error: Config '%s' has no active port forwarding",
+  "error_kubectl_not_found": "Error: kubectl not found. Please install it first.",
+  "error_jq_not_found": "Error: jq not found. Please install it first.",
+  "use_config_list": "Please use 'brow config list' to see available configurations",
 
   "waiting_for_pod": "Waiting for proxy Pod to be ready...",
   "pod_ready": "Pod '%s' created and ready",
@@ -43,6 +46,15 @@
 
   "operation_cancelled": "Operation cancelled",
   "cleaning_up": "Cleaning up...",
+
+  "health_check_start": "Performing health check...",
+  "checking_forwards": "Checking forwarding records...",
+  "checking_expired_pods": "Checking expired Pods...",
+  "health_check_complete": "Health check complete",
+
+  "trying_backup_port": "Trying backup port...",
+  "trying_port": "Trying port: %s",
+  "error_connection_failed": "Error: Could not create connection, please check configuration and network status",
 
   "config_list_title": "brow Configurations:",
   "config_name": "Config Name",

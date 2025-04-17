@@ -23,6 +23,9 @@
   "error_config_exists": "错误: 配置 '%s' 已存在",
   "error_forward_not_found": "错误: 未找到ID为 '%s' 的端口转发",
   "error_config_no_forwards": "错误: 配置 '%s' 没有活跃的端口转发",
+  "error_kubectl_not_found": "错误: 未找到 kubectl。请先安装它。",
+  "error_jq_not_found": "错误: 未找到 jq。请先安装它。",
+  "use_config_list": "请使用 'brow config list' 查看可用的配置",
 
   "waiting_for_pod": "等待代理Pod就绪...",
   "pod_ready": "Pod '%s' 已创建并就绪",
@@ -43,6 +46,15 @@
 
   "operation_cancelled": "操作已取消",
   "cleaning_up": "正在清理...",
+
+  "health_check_start": "正在进行健康检查...",
+  "checking_forwards": "检查转发记录...",
+  "checking_expired_pods": "检查过期的Pod...",
+  "health_check_complete": "健康检查完成",
+
+  "trying_backup_port": "尝试使用备用端口...",
+  "trying_port": "尝试端口: %s",
+  "error_connection_failed": "错误: 无法创建连接，请检查配置和网络状态",
 
   "config_list_title": "brow配置列表:",
   "config_name": "配置名称",
