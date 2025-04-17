@@ -200,16 +200,20 @@ end
 function _brow_forward_stop --argument-names forward_id
     # 停止特定的转发
 
+    # 处理可能的制表符和描述信息
+    # 如果输入包含制表符，只取第一部分（实际的ID）
+    set -l clean_id (string split "\t" $forward_id)[1]
+
     set -l active_dir ~/.config/brow/active
     if not test -d $active_dir
         mkdir -p $active_dir
     end
 
     # 查找匹配的转发记录文件
-    set -l forward_files (find $active_dir -name "*-$forward_id.json" 2>/dev/null)
+    set -l forward_files (find $active_dir -name "*-$clean_id.json" 2>/dev/null)
 
     if test -z "$forward_files"
-        echo "错误: 未找到ID为 $forward_id 的端口转发"
+        echo "错误: 未找到ID为 $clean_id 的端口转发"
         return 1
     end
 

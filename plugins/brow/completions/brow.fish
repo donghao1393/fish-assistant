@@ -58,8 +58,9 @@ function __brow_forward_ids
                     set forward_status 活跃
                 end
 
-                # 输出格式："ID\t配置 (本地端口) -> Pod [状态]"
-                echo "$forward_id\t$config (端口:$local_port) -> $pod_id [$forward_status]"
+                # 输出格式：ID（带描述）
+                set -l description "$config (端口:$local_port) -> $pod_id [$forward_status]"
+                echo $forward_id\t$description
             end
         end
     end

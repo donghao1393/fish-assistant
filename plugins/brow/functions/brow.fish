@@ -256,9 +256,11 @@ function _brow_connect --argument-names config_name
         echo "尝试端口: $backup_port"
         set forward_id (_brow_forward_start $pod_id $backup_port $k8s_context)
         if test $status -eq 0
-            echo "\n转发ID: $forward_id"
+            echo ""
+            echo "转发ID: $forward_id"
         end
     else
-        echo "\n转发ID: $forward_id"
+        echo ""
+        echo "转发ID: $forward_id"
     end
 end
