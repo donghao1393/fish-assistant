@@ -494,7 +494,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
         return 1
     end
 
-    set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
+    set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "unknown"')
 
     # 检查是否有活跃的端口转发
     set -l active_dir ~/.config/brow/active

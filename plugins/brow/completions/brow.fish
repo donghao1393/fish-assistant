@@ -79,7 +79,7 @@ function __brow_forward_ids
                     # 如果这个配置还没有被处理过，输出配置名称作为选项
                     if not contains $config_name $processed_configs
                         set -a processed_configs $config_name
-                        set -l config_description "$config_name (端口:$local_port) [活跃连接]"
+                        set -l config_description "$config_name (port:$local_port) [active]"
                         echo $config_name\t$config_description
                     end
                 end
@@ -90,7 +90,7 @@ function __brow_forward_ids
     # 添加所有配置名称作为选项，但只添加那些还没有被处理过的
     for config_name in (__brow_config_names)
         if not contains $config_name $processed_configs
-            echo $config_name\t"$config_name [配置名称]"
+            echo $config_name\t"$config_name [config]"
         end
     end
 end
