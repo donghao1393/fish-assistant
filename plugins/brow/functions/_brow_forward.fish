@@ -54,7 +54,10 @@ function _brow_forward_start --argument-names config_name local_port
 
     # 获取或创建Pod
     echo "获取配置 '$clean_config_name' 的Pod..." >&2
-    set -l pod_id (_brow_pod_create $clean_config_name)
+
+    # 捕获_brow_pod_create函数的最后一行输出作为Pod名称
+    # 使用command substitution来执行函数并获取其输出
+    set -l pod_output (eval "_brow_pod_create $clean_config_name")
     set -l pod_status $status
 
     if test $pod_status -ne 0
@@ -62,7 +65,8 @@ function _brow_forward_start --argument-names config_name local_port
         return 1
     end
 
-    # 现在pod_id已经是纯净的Pod名称，不需要再提取
+    # 获取最后一行作为Pod名称
+    set -l pod_id $pod_output[-1]
     echo "获取到Pod名称: $pod_id" >&2
 
     # 生成唯一的转发ID
