@@ -1,0 +1,12 @@
+# 忽略插件数据目录
+plugins/*/data/
+
+# 忽略临时文件
+*.tmp
+*~
+.DS_Store
+
+# 忽略Python虚拟环境
+.venv/
+__pycache__/
+*.pyc

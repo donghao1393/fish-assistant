@@ -1,3 +1,68 @@
+# 记录硬链接关系的函数
+function _fa_record_link --argument-names target source
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l data_dir $FISH_ASSISTANT_HOME/plugins/fa/data
+    set -l links_file $data_dir/links.json
+
+    # 确保数据目录存在
+    if not test -d $data_dir
+        mkdir -p $data_dir
+    end
+
+    # 确保 JSON 文件存在
+    if not test -f $links_file
+        echo '{}' > $links_file
+    end
+
+    # 使用 jq 更新 JSON 文件
+    # 将目标文件路径作为键，源文件路径作为值
+    jq --arg target "$target" --arg source "$source" '.[$target] = $source' $links_file > $links_file.tmp
+    mv $links_file.tmp $links_file
+end
+
+# 删除硬链接记录的函数
+function _fa_remove_link_record --argument-names target
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        return 1
+    end
+
+    set -l data_dir $FISH_ASSISTANT_HOME/plugins/fa/data
+    set -l links_file $data_dir/links.json
+
+    if test -f $links_file
+        # 使用 jq 删除指定的键
+        jq --arg target "$target" 'del(.[$target])' $links_file > $links_file.tmp
+        mv $links_file.tmp $links_file
+    end
+end
+
+# 获取硬链接源文件的函数
+function _fa_get_link_source --argument-names target
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        return 1
+    end
+
+    set -l data_dir $FISH_ASSISTANT_HOME/plugins/fa/data
+    set -l links_file $data_dir/links.json
+
+    if test -f $links_file
+        # 使用 jq 获取指定键的值
+        set -l source (jq -r --arg target "$target" '.[$target] // empty' $links_file)
+        if test -n "$source" -a "$source" != "null"
+            echo $source
+            return 0
+        end
+    end
+    return 1
+end
+
 function fa --description 'Fish Assistant - manage fish functions and plugins'
     set -l fa_version "0.1.0"  # 改名为 fa_version
 
@@ -145,6 +210,7 @@ function _fa_plugin_map --argument-names plugin_name
                 rm $target
             end
             ln -f $f $target
+            _fa_record_link $target $f
             echo "创建链接: $target -> $f"
         end
     end
@@ -159,6 +225,7 @@ function _fa_plugin_map --argument-names plugin_name
                 rm $target
             end
             ln -f $f $target
+            _fa_record_link $target $f
             echo "创建链接: $target -> $f"
         end
     end
@@ -175,6 +242,7 @@ function _fa_plugin_map --argument-names plugin_name
                     rm $target
                 end
                 ln -f $f $target
+                _fa_record_link $target $f
                 echo "创建链接: $target -> $f"
             end
         end
@@ -211,6 +279,7 @@ function _fa_map --argument-names type file
                 rm $target
             end
             ln -f $source_path $target
+            _fa_record_link $target $source_path
             echo "创建链接: $target -> $source_path"
 
         case completions
@@ -226,6 +295,7 @@ function _fa_map --argument-names type file
                 rm $target
             end
             ln -f $source_path $target
+            _fa_record_link $target $source_path
             echo "创建链接: $target -> $source_path"
 
         case conf.d
@@ -246,6 +316,7 @@ function _fa_map --argument-names type file
                 rm $target
             end
             ln -f $source_path $target
+            _fa_record_link $target $source_path
             echo "创建链接: $target -> $source_path"
 
         case '*'
@@ -258,59 +329,122 @@ end
 function _fa_list
     set -l fish_config_dir ~/.config/fish
 
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l data_dir $FISH_ASSISTANT_HOME/plugins/fa/data
+    set -l links_file $data_dir/links.json
+
     echo "函数链接:"
     for f in $fish_config_dir/functions/*.fish
+        # 检查软链接
         if test -L $f
             set -l target (readlink $f)
             echo "  $(basename $f) -> $target"
+        # 检查硬链接
+        else if test -f $links_file
+            set -l source (_fa_get_link_source $f)
+            if test $status -eq 0
+                echo "  $(basename $f) -> $source"
+            end
         end
     end
 
     echo -e "\n配置链接:"
     if test -d $fish_config_dir/conf.d
         for f in $fish_config_dir/conf.d/*.fish
+            # 检查软链接
             if test -L $f
                 set -l target (readlink $f)
                 echo "  $(basename $f) -> $target"
+            # 检查硬链接
+            else if test -f $links_file
+                set -l source (_fa_get_link_source $f)
+                if test $status -eq 0
+                    echo "  $(basename $f) -> $source"
+                end
             end
         end
     end
 
     echo -e "\n补全链接:"
     for f in $fish_config_dir/completions/*.fish
+        # 检查软链接
         if test -L $f
             set -l target (readlink $f)
             echo "  $(basename $f) -> $target"
+        # 检查硬链接
+        else if test -f $links_file
+            set -l source (_fa_get_link_source $f)
+            if test $status -eq 0
+                echo "  $(basename $f) -> $source"
+            end
         end
     end
 end
 
 function _fa_check
     set -l fish_config_dir ~/.config/fish
+
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l data_dir $FISH_ASSISTANT_HOME/plugins/fa/data
+    set -l links_file $data_dir/links.json
     set -l has_error false
 
     echo "检查函数链接..."
     for f in $fish_config_dir/functions/*.fish
+        # 检查软链接
         if test -L $f; and not test -e $f
             echo "  失效链接: $f -> $(readlink $f)"
             set has_error true
+        # 检查硬链接
+        else if test -f $links_file
+            set -l source (_fa_get_link_source $f)
+            if test $status -eq 0; and not test -e $source
+                echo "  失效硬链接: $f -> $source"
+                set has_error true
+            end
         end
     end
 
     echo -e "\n检查补全链接..."
     for f in $fish_config_dir/completions/*.fish
+        # 检查软链接
         if test -L $f; and not test -e $f
             echo "  失效链接: $f -> $(readlink $f)"
             set has_error true
+        # 检查硬链接
+        else if test -f $links_file
+            set -l source (_fa_get_link_source $f)
+            if test $status -eq 0; and not test -e $source
+                echo "  失效硬链接: $f -> $source"
+                set has_error true
+            end
         end
     end
 
     echo -e "\n检查配置链接..."
     if test -d $fish_config_dir/conf.d
         for f in $fish_config_dir/conf.d/*.fish
+            # 检查软链接
             if test -L $f; and not test -e $f
                 echo "  失效链接: $f -> $(readlink $f)"
                 set has_error true
+            # 检查硬链接
+            else if test -f $links_file
+                set -l source (_fa_get_link_source $f)
+                if test $status -eq 0; and not test -e $source
+                    echo "  失效硬链接: $f -> $source"
+                    set has_error true
+                end
             end
         end
     end
@@ -322,13 +456,37 @@ end
 
 function _fa_clean
     set -l fish_config_dir ~/.config/fish
+
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l data_dir $FISH_ASSISTANT_HOME/plugins/fa/data
+    set -l links_file $data_dir/links.json
     set -l cleaned false
 
+    # 清理失效的软链接
     for f in $fish_config_dir/{functions,completions,conf.d}/*.fish
         if test -L $f; and not test -e $f
             echo "删除失效链接: $f -> $(readlink $f)"
             rm $f
             set cleaned true
+        end
+    end
+
+    # 清理失效的硬链接
+    if test -f $links_file
+        # 使用 jq 遍历所有链接
+        jq -r 'to_entries | .[] | "\(.key)\t\(.value)"' $links_file | while read -l target source
+            # 检查源文件是否存在
+            if test -f $target; and not test -e $source
+                echo "删除失效硬链接: $target -> $source"
+                rm $target
+                _fa_remove_link_record $target
+                set cleaned true
+            end
         end
     end
 
@@ -339,15 +497,37 @@ end
 
 function _fa_unmap --argument-names file
     set -l fish_config_dir ~/.config/fish
+
+    # 检查是否设置了 FISH_ASSISTANT_HOME 环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置 FISH_ASSISTANT_HOME 环境变量"
+        return 1
+    end
+
+    set -l data_dir $FISH_ASSISTANT_HOME/plugins/fa/data
+    set -l links_file $data_dir/links.json
     set -l found false
 
     for dir in functions completions conf.d
         set -l target $fish_config_dir/$dir/$file
+
+        # 检查软链接
         if test -L $target
             echo "删除链接: $target -> $(readlink $target)"
             rm $target
+            _fa_remove_link_record $target
             set found true
             break
+        # 检查硬链接
+        else if test -f $target; and test -f $links_file
+            set -l source (_fa_get_link_source $target)
+            if test $status -eq 0
+                echo "删除硬链接: $target -> $source"
+                rm $target
+                _fa_remove_link_record $target
+                set found true
+                break
+            end
         end
     end
 
