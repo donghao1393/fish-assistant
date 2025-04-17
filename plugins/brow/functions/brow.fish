@@ -159,17 +159,8 @@ function brow --description "Kubernetes 连接管理工具"
                         set k8s_context (kubectl config current-context)
                     end
 
-                    # 调用_brow_forward_start函数并直接显示其输出
-                    # 最后一行是转发ID
-                    set -l output (_brow_forward_start $pod_id $local_port $k8s_context)
-                    set -l status_code $status
-
-                    # 如果成功，显示输出
-                    if test $status_code -eq 0
-                        for line in $output
-                            echo $line
-                        end
-                    end
+                    # 直接调用_brow_forward_start函数，并将其输出传递给用户
+                    _brow_forward_start $pod_id $local_port $k8s_context
                 case list
                     _brow_forward_list
                 case stop
