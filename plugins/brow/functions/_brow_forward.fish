@@ -167,7 +167,19 @@ function _brow_forward_list
     end
 
     # 打印表头
-    printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s %-"$widths[6]"s\n" $headers
+    echo -n ""
+    _pad_to_width $headers[1] $widths[1]
+    echo -n " "
+    _pad_to_width $headers[2] $widths[2]
+    echo -n " "
+    _pad_to_width $headers[3] $widths[3]
+    echo -n " "
+    _pad_to_width $headers[4] $widths[4]
+    echo -n " "
+    _pad_to_width $headers[5] $widths[5]
+    echo -n " "
+    _pad_to_width $headers[6] $widths[6]
+    echo ""
 
     # 处理每个转发记录
     for file in $forward_files
@@ -251,10 +263,37 @@ function _brow_forward_list
         set -l display_data $forward_id $config_name $local_port $remote_port $pid
 
         # 使用颜色输出状态
-        printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s " $display_data
+        echo -n ""
+        _pad_to_width $forward_id $widths[1]
+        echo -n " "
+        _pad_to_width $config_name $widths[2]
+        echo -n " "
+        _pad_to_width $local_port $widths[3]
+        echo -n " "
+        _pad_to_width $remote_port $widths[4]
+        echo -n " "
+        _pad_to_width $pid $widths[5]
+        echo -n " "
         set_color $status_color
         echo $forward_status
         set_color normal
+    end
+end
+
+# 辅助函数：基于可见宽度的格式化
+function _pad_to_width --argument-names str width fill
+    # 默认填充字符为空格
+    if test -z "$fill"
+        set fill " "
+    end
+
+    # 计算显示宽度
+    set -l str_width (string length --visible -- "$str")
+    set -l padding (math "$width - $str_width")
+
+    echo -n "$str"
+    if test $padding -gt 0
+        echo -n (string repeat -n $padding "$fill")
     end
 end
 

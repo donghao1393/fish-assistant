@@ -172,7 +172,21 @@ function _brow_pod_list
     end
 
     # 打印表头
-    printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s %-"$widths[6]"s %-"$widths[7]"s\n" $headers
+    echo -n ""
+    _pad_to_width $headers[1] $widths[1]
+    echo -n " "
+    _pad_to_width $headers[2] $widths[2]
+    echo -n " "
+    _pad_to_width $headers[3] $widths[3]
+    echo -n " "
+    _pad_to_width $headers[4] $widths[4]
+    echo -n " "
+    _pad_to_width $headers[5] $widths[5]
+    echo -n " "
+    _pad_to_width $headers[6] $widths[6]
+    echo -n " "
+    _pad_to_width $headers[7] $widths[7]
+    echo ""
 
     # 遍历配置中的上下文
     for ctx in $contexts
@@ -234,7 +248,21 @@ function _brow_pod_list
             set -l display_data $pod_name $config_name $service_name $created_at $ttl $pod_status $short_ctx
 
             # 打印行
-            printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s %-"$widths[6]"s %-"$widths[7]"s\n" $display_data
+            echo -n ""
+            _pad_to_width $pod_name $widths[1]
+            echo -n " "
+            _pad_to_width $config_name $widths[2]
+            echo -n " "
+            _pad_to_width $service_name $widths[3]
+            echo -n " "
+            _pad_to_width $created_at $widths[4]
+            echo -n " "
+            _pad_to_width $ttl $widths[5]
+            echo -n " "
+            _pad_to_width $pod_status $widths[6]
+            echo -n " "
+            _pad_to_width $short_ctx $widths[7]
+            echo ""
         end
     end
 
@@ -604,6 +632,23 @@ function _brow_pod_cleanup
         echo 没有找到需要清理的Pod
     else
         echo "已删除 $total_expired_pods 个Pod"
+    end
+end
+
+# 辅助函数：基于可见宽度的格式化
+function _pad_to_width --argument-names str width fill
+    # 默认填充字符为空格
+    if test -z "$fill"
+        set fill " "
+    end
+
+    # 计算显示宽度
+    set -l str_width (string length --visible -- "$str")
+    set -l padding (math "$width - $str_width")
+
+    echo -n "$str"
+    if test $padding -gt 0
+        echo -n (string repeat -n $padding "$fill")
     end
 end
 
