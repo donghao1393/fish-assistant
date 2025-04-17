@@ -156,11 +156,11 @@ function _brow_pod_list
     # 初始化计数器
     set -l total_pods 0
 
-    echo "活跃的brow Pod:"
+    echo (_brow_i18n_get "pod_list_title")
     echo
 
     # 定义列标题和宽度
-    set -l headers Pod名称 配置 服务 创建时间 TTL 状态 上下文
+    set -l headers (_brow_i18n_get "pod_name") (_brow_i18n_get "config") (_brow_i18n_get "service") (_brow_i18n_get "created_at") (_brow_i18n_get "ttl") (_brow_i18n_get "status") (_brow_i18n_get "context")
     set -l widths 30 15 15 15 15 15 15
 
     # 计算标题的可见宽度
@@ -268,7 +268,7 @@ function _brow_pod_list
 
     # 如果没有找到Pod，显示提示信息
     if test $total_pods -eq 0
-        echo "没有找到活跃的brow Pod"
+        echo (_brow_i18n_get "no_pods_found")
     end
 end
 
@@ -288,7 +288,7 @@ function _brow_pod_info --argument-names pod_id_or_config
         set -l pod_names (echo $pod_json | jq -r '.items[].metadata.name' 2>/dev/null)
 
         if test -z "$pod_names"
-            echo "错误: 没有找到配置 '$config_name' 的Pod"
+            echo (_brow_i18n_format "error_pod_not_found" $config_name)
             return 1
         end
 
@@ -302,7 +302,7 @@ function _brow_pod_info --argument-names pod_id_or_config
             read -l -P "请选择要查看的Pod编号 [1-"(count $pod_names)"]: " choice
 
             if test -z "$choice" -o "$choice" -lt 1 -o "$choice" -gt (count $pod_names)
-                echo 操作已取消
+                echo (_brow_i18n_get "operation_cancelled")
                 return 1
             end
 
@@ -319,7 +319,7 @@ function _brow_pod_info --argument-names pod_id_or_config
         # 使用当前上下文
         set -l k8s_context (kubectl config current-context)
         if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
-            echo "错误: Pod '$pod_id' 不存在"
+            echo (_brow_i18n_format "error_pod_not_found" $pod_id)
             return 1
         end
     end
@@ -437,7 +437,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
         set -l pod_names (echo $pod_json | jq -r '.items[].metadata.name' 2>/dev/null)
 
         if test -z "$pod_names"
-            echo "错误: 没有找到配置 '$config_name' 的Pod"
+            echo (_brow_i18n_format "error_pod_not_found" $config_name)
             return 1
         end
 
@@ -451,7 +451,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
             read -l -P "请选择要删除的Pod编号 [1-"(count $pod_names)"]: " choice
 
             if test -z "$choice" -o "$choice" -lt 1 -o "$choice" -gt (count $pod_names)
-                echo 操作已取消
+                echo (_brow_i18n_get "operation_cancelled")
                 return 1
             end
 
@@ -468,7 +468,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
         # 使用当前上下文
         set -l k8s_context (kubectl config current-context)
         if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
-            echo "错误: Pod '$pod_id' 不存在"
+            echo (_brow_i18n_format "error_pod_not_found" $pod_id)
             return 1
         end
     end
@@ -488,7 +488,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
     # 获取Pod信息
     set -l pod_json (kubectl --context=$k8s_context get pod $pod_id -o json 2>/dev/null)
     if test $status -ne 0
-        echo "错误: 无法获取Pod '$pod_id' 的信息"
+        echo (_brow_i18n_format "error_pod_not_found" $pod_id)
         return 1
     end
 
@@ -513,7 +513,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
         read -l -P "是否停止所有端口转发并删除Pod? [y/N]: " confirm
 
         if test "$confirm" != y -a "$confirm" != Y
-            echo 操作已取消
+            echo (_brow_i18n_get "operation_cancelled")
             return 1
         end
 
@@ -527,13 +527,13 @@ function _brow_pod_delete --argument-names pod_id_or_config
     # 使用前面获取的上下文
 
     # 删除Pod
-    echo "正在删除Pod '$pod_id'..."
+    echo (_brow_i18n_format "pod_deleting" $pod_id)
     kubectl --context=$k8s_context delete pod $pod_id --grace-period=0 --force >/dev/null
 
     if test $status -eq 0
-        echo "Pod '$pod_id' 已删除"
+        echo (_brow_i18n_format "pod_deleted" $pod_id)
     else
-        echo "错误: 删除Pod '$pod_id' 失败"
+        echo (_brow_i18n_format "pod_delete_failed" $pod_id)
         return 1
     end
 end
@@ -541,7 +541,7 @@ end
 function _brow_pod_cleanup
     # 清理过期的Pod
 
-    echo "正在检查过期的Pod..."
+    echo (_brow_i18n_get "cleaning_up")
 
     # 获取配置中的上下文
     set -l config_file ~/.config/brow/config.json
@@ -606,7 +606,7 @@ function _brow_pod_cleanup
 
             # 如果需要清理，删除Pod
             if test "$should_cleanup" = true
-                echo "删除Pod: $pod_name (上下文: $k8s_context)"
+                echo (_brow_i18n_format "pod_deleting" $pod_name)
                 kubectl --context=$k8s_context delete pod $pod_name --grace-period=0 --force >/dev/null 2>&1
                 set context_expired_pods (math $context_expired_pods + 1)
 
