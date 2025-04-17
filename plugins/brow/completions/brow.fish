@@ -34,88 +34,67 @@ function __brow_config_names
 end
 
 function __brow_pod_ids
-    # 获取配置中的上下文
-    set -l config_file ~/.config/brow/config.json
-    set -l contexts (jq -r '.[] | .k8s_context' $config_file | sort -u 2>/dev/null)
-
-    # 如果没有配置，使用当前上下文
-    if test -z "$contexts"
-        set contexts (kubectl config current-context 2>/dev/null)
-    end
-
-    # 遍历配置中的上下文
-    for ctx in $contexts
-        # 获取当前上下文中的brow Pod
-        set -l pods_json (kubectl --context=$ctx get pods -l app=brow --output=json 2>/dev/null)
-        if test $status -ne 0
-            continue
-        end
-
-        # 使用jq提取Pod的信息
-        set -l pod_names (echo $pods_json | jq -r '.items[].metadata.name' 2>/dev/null)
-        if test -z "$pod_names"
-            continue
-        end
-
-        # 处理每个Pod
-        for pod_name in $pod_names
-            # 提取Pod信息，使用已经获取的pods_json数据
-            set -l pod_json (echo $pods_json | jq -r ".items[] | select(.metadata.name == \"$pod_name\")")
-
-            # 提取Pod信息
-            set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
-            set -l pod_status (echo $pod_json | jq -r '.status.phase')
-
-            # 显示简化的上下文名称
-            set -l short_ctx (echo $ctx | string replace -r '.*/' '')
-
-            # 输出格式：Pod名称\t配置 (上下文) [状态]
-            set -l description "$config_name ($short_ctx) [$pod_status]"
-            echo $pod_name\t$description
-        end
-    end
-
-    # 添加配置名称作为可选项，以便直接创建Pod
-    set -l config_names (jq -r 'keys[]' $config_file 2>/dev/null)
-    for config_name in $config_names
-        # 获取配置信息
-        set -l config_data (jq -r ".[\"$config_name\"]" $config_file)
-        set -l k8s_context (echo $config_data | jq -r '.k8s_context')
-        set -l short_ctx (echo $k8s_context | string replace -r '.*/' '')
-
-        # 输出格式：配置名称\t配置 (上下文) [创建Pod]
-        set -l description "$config_name ($short_ctx) [创建Pod]"
-        echo $config_name\t$description
-    end
+    # 现在只返回配置名称，而不是Pod ID
+    __brow_config_names
 end
 
 function __brow_forward_ids
     set -l active_dir ~/.config/brow/active
     if test -d $active_dir
+        # 记录已经处理过的配置
+        set -l processed_configs ""
+
         for file in $active_dir/forward-*.json
             if test -f $file
-                # 提取转发ID
-                set -l forward_id (basename $file .json | string replace "forward-" "" | string split "-" | tail -n 1)
+                # 从文件名中提取信息
+                set -l filename (basename $file)
+
+                # 先移除.json后缀
+                set -l name_without_ext (string replace ".json" "" $filename)
+
+                # 分割成数组，例如 [forward, legacy, prod, 0df206e8]
+                set -l parts (string split "-" $name_without_ext)
+
+                # 获取最后一个元素作为forward_id
+                set -l forward_id $parts[-1]
+
+                # 移除第一个元素(forward)和最后一个元素(forward_id)
+                set -l config_parts $parts[2..-2]
+
+                # 将剩下的元素用短横线连接起来作为config_name
+                set -l config_from_filename (string join "-" $config_parts)
 
                 # 读取转发数据
                 set -l forward_data (cat $file)
-                set -l pod_id (echo $forward_data | jq -r '.pod_id')
+                set -l config_name (echo $forward_data | jq -r '.config // "unknown"')
+                set -l pod_id (echo $forward_data | jq -r '.pod_id // "unknown"')
                 set -l local_port (echo $forward_data | jq -r '.local_port')
-                set -l config (echo $forward_data | jq -r '.config')
                 set -l pid (echo $forward_data | jq -r '.pid')
 
-                # 检查进程是否仍在运行
-                set -l forward_status 已停止
-                if kill -0 $pid 2>/dev/null
-                    set forward_status 活跃
+                # 如果文件内容中的config_name与文件名中的不一致，使用文件名中的
+                if test "$config_name" = unknown
+                    set config_name $config_from_filename
                 end
 
-                # 输出格式：ID（带描述）
-                set -l description "$config (端口:$local_port) -> $pod_id [$forward_status]"
-                echo $forward_id\t$description
+                # 检查进程是否仍在运行
+                if kill -0 $pid 2>/dev/null
+                    # 输出转发ID作为选项
+                    set -l description "$config_name (端口:$local_port) [转发ID]"
+                    echo $forward_id\t$description
+
+                    # 如果这个配置还没有被处理过，也输出配置名称作为选项
+                    if not contains $config_name $processed_configs
+                        set -a processed_configs $config_name
+                        set -l config_description "$config_name (端口:$local_port) [配置名称]"
+                        echo $config_name\t$config_description
+                    end
+                end
             end
         end
     end
+
+    # 添加所有配置名称作为选项
+    __brow_config_names
 end
 
 function __brow_k8s_contexts
