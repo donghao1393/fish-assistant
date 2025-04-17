@@ -150,14 +150,23 @@ function _brow_forward_list
         # 文件名格式应该是 forward-<pod_id>-<forward_id>.json
         # 例如：forward-brow-proxy-a95c4f8e-0df206e8.json
 
-        # 提取forward_id（最后一部分）
-        set -l parts (string split ".json" $filename)
-        set -l name_parts (string split "-" $parts[1])
-        set -l forward_id $name_parts[-1]
+        # 从文件名中提取信息
+        # 文件名格式例如：forward-brow-proxy-a95c4f8e-0df206e8.json
 
-        # 提取pod_id（中间部分）
-        set -l pod_parts (string split "-$forward_id" $parts[1])
-        set -l pod_id_from_filename (string replace "forward-" "" $pod_parts[1])
+        # 先移除.json后缀
+        set -l name_without_ext (string replace ".json" "" $filename)
+
+        # 分割成数组，例如 [forward, brow, proxy, a95c4f8e, 0df206e8]
+        set -l parts (string split "-" $name_without_ext)
+
+        # 获取最后一个元素作为forward_id
+        set -l forward_id $parts[-1]
+
+        # 移除第一个元素(forward)和最后一个元素(forward_id)
+        set -l pod_parts $parts[2..-2]
+
+        # 将剩下的元素用短横线连接起来作为pod_id
+        set -l pod_id_from_filename (string join "-" $pod_parts)
 
         # 读取转发数据
         set -l forward_data (cat $file)
