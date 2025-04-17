@@ -1,74 +1,67 @@
-function _brow_forward_start --argument-names pod_id local_port k8s_context
+function _brow_forward_start --argument-names config_name local_port
     # 开始端口转发
-    # 用法: _brow_forward_start <pod-id> [local_port] <k8s_context>
+    # 用法: _brow_forward_start <配置名称> [local_port]
 
     # 处理可能的制表符和描述信息
-    # 如果输入包含制表符，只取第一部分（实际的Pod ID）
-    set -l clean_pod_id (string split "\t" $pod_id)[1]
+    # 如果输入包含制表符，只取第一部分（实际的配置名称）
+    set -l clean_config_name (string split "\t" $config_name)[1]
 
-    # 检查上下文参数
-    if test -z "$k8s_context"
-        # 如果没有指定上下文，尝试从$argv中获取
-        if test (count $argv) -ge 3
-            set k8s_context $argv[3]
-        end
-    end
-
-    # 如果没有指定上下文，返回错误
-    if test -z "$k8s_context"
-        echo "错误: 未指定Kubernetes上下文"
-        echo "请使用 'brow forward start <pod-id> <local_port> <k8s_context>' 命令指定上下文"
+    # 检查配置是否存在
+    if not _brow_config_exists $clean_config_name
+        echo "错误: 配置 '$clean_config_name' 不存在"
+        echo "请使用 'brow config list' 查看可用的配置"
         return 1
     end
 
-    # 检查Pod是否存在
-    set -l pod_check_output (kubectl --context=$k8s_context get pod $clean_pod_id 2>&1)
-    set -l pod_check_status $status
+    # 获取配置数据
+    set -l config_data (_brow_config_get $clean_config_name)
+    set -l k8s_context (echo $config_data | jq -r '.k8s_context')
+    set -l remote_port (echo $config_data | jq -r '.remote_port')
 
-    if test $pod_check_status -ne 0
-        echo "错误: 在上下文 '$k8s_context' 中找不到Pod '$clean_pod_id'"
-
-        # 尝试在指定的上下文中查找匹配的Pod
-        set -l matching_pods (kubectl --context=$k8s_context get pods --selector=app=brow -o name 2>/dev/null | string replace "pod/" "")
-
-        if test -n "$matching_pods"
-            echo "在上下文 '$k8s_context' 中找到以下相关Pod:"
-            for pod in $matching_pods
-                echo "  $pod"
-            end
-            echo "请使用以下命令连接其中一个:"
-            echo "brow forward start <pod-id> $local_port $k8s_context"
-        else
-            echo "建议先创建Pod，然后再连接:"
-            echo "brow pod create <配置名称>"
-            echo "brow connect <配置名称>"
-        end
-
-        return 1
-    end
-
-    # 获取Pod信息
-    set -l pod_json (kubectl --context=$k8s_context get pod $clean_pod_id -o json)
-    set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
-    set -l remote_port (echo $pod_json | jq -r '.spec.containers[0].ports[0].containerPort // "5432"')
-
-    # 如果未指定本地端口，尝试从配置获取
+    # 如果未指定本地端口，使用配置中的端口
     if test -z "$local_port"
-        if test "$config_name" != 未知
-            set -l config_data (_brow_config_get $config_name)
-            if test $status -eq 0
-                set local_port (echo $config_data | jq -r '.local_port')
-            else
-                # 默认使用与远程端口相同的本地端口
-                set local_port $remote_port
-            end
+        set local_port (echo $config_data | jq -r '.local_port')
+    end
+
+    # 检查是否已有该配置的转发
+    set -l active_dir ~/.config/brow/active
+    if not test -d $active_dir
+        mkdir -p $active_dir
+    end
+
+    # 查找该配置的转发记录
+    set -l existing_forwards (find $active_dir -name "forward-$clean_config_name-*.json" 2>/dev/null)
+
+    # 如果已经有转发，检查是否仍然有效
+    for file in $existing_forwards
+        set -l forward_data (cat $file)
+        set -l pid (echo $forward_data | jq -r '.pid')
+
+        # 检查进程是否仍在运行
+        if kill -0 $pid 2>/dev/null
+            # 提取转发ID
+            set -l forward_id (basename $file | string replace -r "forward-$clean_config_name-" "" | string replace ".json" "")
+            set -l existing_local_port (echo $forward_data | jq -r '.local_port')
+
+            echo "配置 '$clean_config_name' 已有活跃的转发 (ID: $forward_id, 端口: $existing_local_port)"
+            echo "请先使用 'brow forward stop $forward_id' 停止现有转发"
+            return 1
         else
-            # 默认使用与远程端口相同的本地端口
-            set local_port $remote_port
+            # 如果进程不存在，删除记录文件
+            rm $file 2>/dev/null
         end
     end
 
-    # 我们已经在函数开始时设置了k8s_context，不需要再次设置
+    # 获取或创建Pod
+    echo "获取配置 '$clean_config_name' 的Pod..."
+    set -l pod_id (_brow_pod_create $clean_config_name)
+
+    if test $status -ne 0
+        echo "错误: 无法获取或创建Pod"
+        return 1
+    end
+
+    echo "获取到Pod名称: $pod_id"
 
     # 生成唯一的转发ID
     set -l forward_id (date +%s%N | shasum | head -c 8)
@@ -79,13 +72,13 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
         mkdir -p $active_dir
     end
 
-    # 转发记录文件
-    set -l forward_file "$active_dir/forward-$clean_pod_id-$forward_id.json"
+    # 转发记录文件 - 使用配置名称而非Pod ID
+    set -l forward_file "$active_dir/forward-$clean_config_name-$forward_id.json"
 
     # 启动端口转发进程
     # 将错误输出重定向到临时文件
     set -l error_file (mktemp)
-    kubectl --context=$k8s_context port-forward pod/$clean_pod_id $local_port:$remote_port >$error_file 2>&1 &
+    kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >$error_file 2>&1 &
 
     # 获取进程ID
     set -l pid $last_pid
@@ -116,11 +109,11 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     # 删除临时文件
     rm $error_file 2>/dev/null
 
-    # 保存转发信息
-    set -l forward_data (jo pod_id=$clean_pod_id local_port=$local_port remote_port=$remote_port pid=$pid config=$config_name)
+    # 保存转发信息 - 使用配置名称作为主要标识
+    set -l forward_data (jo config=$clean_config_name pod_id=$pod_id local_port=$local_port remote_port=$remote_port pid=$pid)
     echo $forward_data >$forward_file
 
-    echo "端口转发已启动: localhost:$local_port -> $clean_pod_id:$remote_port (ID: $forward_id)"
+    echo "端口转发已启动: localhost:$local_port -> $pod_id:$remote_port (ID: $forward_id)"
 
     # 返回转发ID
     echo $forward_id
@@ -146,45 +139,42 @@ function _brow_forward_list
     echo
 
     # 打印表头
-    printf "%-10s %-30s %-15s %-15s %-10s %-15s %-10s\n" ID Pod 本地端口 远程端口 PID 配置 状态
+    printf "%-10s %-15s %-15s %-15s %-10s %-15s\n" ID 配置 本地端口 远程端口 PID 状态
 
     # 处理每个转发记录
     for file in $forward_files
         # 从文件名中提取信息
         set -l filename (basename $file)
 
-        # 文件名格式应该是 forward-<pod_id>-<forward_id>.json
-        # 例如：forward-brow-proxy-a95c4f8e-0df206e8.json
-
-        # 从文件名中提取信息
-        # 文件名格式例如：forward-brow-proxy-a95c4f8e-0df206e8.json
+        # 文件名格式现在是 forward-<config_name>-<forward_id>.json
+        # 例如：forward-legacy-prod-0df206e8.json
 
         # 先移除.json后缀
         set -l name_without_ext (string replace ".json" "" $filename)
 
-        # 分割成数组，例如 [forward, brow, proxy, a95c4f8e, 0df206e8]
+        # 分割成数组，例如 [forward, legacy, prod, 0df206e8]
         set -l parts (string split "-" $name_without_ext)
 
         # 获取最后一个元素作为forward_id
         set -l forward_id $parts[-1]
 
         # 移除第一个元素(forward)和最后一个元素(forward_id)
-        set -l pod_parts $parts[2..-2]
+        set -l config_parts $parts[2..-2]
 
-        # 将剩下的元素用短横线连接起来作为pod_id
-        set -l pod_id_from_filename (string join "-" $pod_parts)
+        # 将剩下的元素用短横线连接起来作为config_name
+        set -l config_from_filename (string join "-" $config_parts)
 
         # 读取转发数据
         set -l forward_data (cat $file)
+        set -l config_name (echo $forward_data | jq -r '.config // "unknown"')
         set -l pod_id (echo $forward_data | jq -r '.pod_id // "unknown"')
         set -l local_port (echo $forward_data | jq -r '.local_port')
         set -l remote_port (echo $forward_data | jq -r '.remote_port')
         set -l pid (echo $forward_data | jq -r '.pid')
-        set -l config (echo $forward_data | jq -r '.config // "unknown"')
 
-        # 如果文件内容中的pod_id与文件名中的不一致，使用文件名中的
-        if test "$pod_id" = unknown -o "$pod_id" = brow
-            set pod_id $pod_id_from_filename
+        # 如果文件内容中的config_name与文件名中的不一致，使用文件名中的
+        if test "$config_name" = unknown
+            set config_name $config_from_filename
         end
 
         # 检查进程是否仍在运行
@@ -193,10 +183,14 @@ function _brow_forward_list
         if kill -0 $pid 2>/dev/null
             set forward_status 活跃
             set status_color green
+        else
+            # 如果进程不存在，删除记录文件
+            rm $file 2>/dev/null
+            continue
         end
 
         # 使用颜色输出状态
-        printf "%-10s %-30s %-15s %-15s %-10s %-15s " $forward_id $pod_id $local_port $remote_port $pid $config
+        printf "%-10s %-15s %-15s %-15s %-10s " $forward_id $config_name $local_port $remote_port $pid
         set_color $status_color
         echo $forward_status
         set_color normal
@@ -219,26 +213,41 @@ function _brow_forward_stop --argument-names forward_id
     set -l forward_files (find $active_dir -name "*-$clean_id.json" 2>/dev/null)
 
     if test -z "$forward_files"
-        echo "错误: 未找到ID为 $clean_id 的端口转发"
-        return 1
+        # 如果没有找到转发ID，尝试将输入解释为配置名称
+        if _brow_config_exists $clean_id
+            # 如果是配置名称，查找该配置的所有转发
+            set forward_files (find $active_dir -name "forward-$clean_id-*.json" 2>/dev/null)
+
+            if test -z "$forward_files"
+                echo "错误: 配置 '$clean_id' 没有活跃的端口转发"
+                return 1
+            end
+        else
+            echo "错误: 未找到ID为 '$clean_id' 的端口转发"
+            return 1
+        end
     end
 
     for file in $forward_files
         # 读取转发数据
         set -l forward_data (cat $file)
-        set -l pod_id (echo $forward_data | jq -r '.pod_id')
+        set -l config_name (echo $forward_data | jq -r '.config // "unknown"')
+        set -l pod_id (echo $forward_data | jq -r '.pod_id // "unknown"')
         set -l local_port (echo $forward_data | jq -r '.local_port')
         set -l remote_port (echo $forward_data | jq -r '.remote_port')
         set -l pid (echo $forward_data | jq -r '.pid')
 
-        echo "停止端口转发: localhost:$local_port -> $pod_id:$remote_port (PID: $pid)"
-
-        # 终止进程
-        kill $pid 2>/dev/null
+        # 检查进程是否仍在运行
+        if kill -0 $pid 2>/dev/null
+            echo "停止端口转发: localhost:$local_port -> $pod_id:$remote_port (PID: $pid)"
+            # 终止进程
+            kill $pid 2>/dev/null
+            echo 端口转发已停止
+        else
+            echo "转发进程已经不存在，清理记录"
+        end
 
         # 删除记录文件
         rm $file
-
-        echo 端口转发已停止
     end
 end

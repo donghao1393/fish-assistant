@@ -137,84 +137,26 @@ function brow --description "Kubernetes 连接管理工具"
             switch $subcmd
                 case start
                     if test (count $argv) -lt 1
-                        echo "用法: brow forward start <pod-id> [local_port]"
+                        echo "用法: brow forward start <配置名称> [local_port]"
                         return 1
                     end
 
-                    set -l pod_id $argv[1]
+                    set -l config_name $argv[1]
                     set -l local_port ""
 
                     if test (count $argv) -ge 2
                         set local_port $argv[2]
                     end
 
-                    # 获取上下文
-                    set -l k8s_context ""
-
-                    # 如果指定了第三个参数，使用它作为上下文
-                    if test (count $argv) -ge 3
-                        set k8s_context $argv[3]
-                    else
-                        # 尝试从配置中获取上下文
-                        # 首先检查Pod是否有关联的配置
-                        set -l pod_config ""
-
-                        # 尝试从当前上下文中获取Pod信息
-                        set -l current_context (kubectl config current-context)
-                        set -l pod_json (kubectl --context=$current_context get pod $pod_id -o json 2>/dev/null)
-
-                        if test $status -eq 0
-                            # 如果Pod存在，获取其配置
-                            set pod_config (echo $pod_json | jq -r '.metadata.annotations."brow.config" // ""')
-
-                            # 如果有配置，使用该配置的上下文
-                            if test -n "$pod_config"
-                                set -l config_data (_brow_config_get $pod_config 2>/dev/null)
-                                if test $status -eq 0
-                                    set k8s_context (echo $config_data | jq -r '.k8s_context')
-                                    # 如果没有指定本地端口，使用配置中的端口
-                                    if test -z "$local_port"
-                                        set local_port (echo $config_data | jq -r '.local_port')
-                                    end
-                                end
-                            end
-                        else
-                            # 如果Pod不存在，尝试从配置名称中查找
-                            # 检查是否有与输入匹配的配置
-                            if _brow_config_exists $pod_id
-                                # 如果输入的是配置名称，使用该配置
-                                set -l config_data (_brow_config_get $pod_id)
-                                if test $status -eq 0
-                                    set k8s_context (echo $config_data | jq -r '.k8s_context')
-                                    # 如果没有指定本地端口，使用配置中的端口
-                                    if test -z "$local_port"
-                                        set local_port (echo $config_data | jq -r '.local_port')
-                                    end
-                                    # 创建Pod
-                                    echo "使用配置 '$pod_id' 创建Pod..."
-                                    set -l pod_output (_brow_pod_create $pod_id)
-                                    if test $status -eq 0
-                                        # 获取最后一行作为Pod名称
-                                        set pod_id (echo $pod_output[-1])
-                                        echo "创建Pod成功: $pod_id"
-                                        # 等待Pod就绪
-                                        sleep 2
-                                    else
-                                        echo "错误: 创建Pod失败"
-                                        return 1
-                                    end
-                                end
-                            end
-                        end
-
-                        # 如果仍然没有上下文，使用当前上下文
-                        if test -z "$k8s_context"
-                            set k8s_context $current_context
-                        end
+                    # 检查配置是否存在
+                    if not _brow_config_exists $config_name
+                        echo "错误: 配置 '$config_name' 不存在"
+                        echo "请使用 'brow config list' 查看可用的配置"
+                        return 1
                     end
 
                     # 直接调用_brow_forward_start函数，并将其输出传递给用户
-                    _brow_forward_start $pod_id $local_port $k8s_context
+                    _brow_forward_start $config_name $local_port
                 case list
                     _brow_forward_list
                 case stop
@@ -259,15 +201,12 @@ function _brow_help
     echo "  brow config edit <名称>           编辑配置"
     echo "  brow config remove <名称>         删除配置"
     echo
-    echo "  brow pod create <配置名称>        根据配置创建 Pod"
     echo "  brow pod list                     列出当前所有 Pod"
-    echo "  brow pod info <pod-id>           查看 Pod 详细信息"
-    echo "  brow pod delete <pod-id>         手动删除 Pod"
     echo "  brow pod cleanup                  清理过期的 Pod"
     echo
-    echo "  brow forward start <pod-id> [本地端口]  开始端口转发"
+    echo "  brow forward start <配置名称> [本地端口]  开始端口转发"
     echo "  brow forward list                 列出活跃的转发"
-    echo "  brow forward stop <forward-id>    停止特定的转发"
+    echo "  brow forward stop <forward-id|配置名称>    停止转发"
     echo
     echo "  brow connect <配置名称>           一步完成创建 Pod 和转发"
     echo "  brow version                      显示版本信息"
@@ -276,6 +215,8 @@ function _brow_help
     echo "示例:"
     echo "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m"
     echo "  brow connect mysql-dev"
+    echo "  brow forward start mysql-dev"
+    echo "  brow forward stop mysql-dev"
 end
 
 function _brow_connect --argument-names config_name
@@ -287,29 +228,12 @@ function _brow_connect --argument-names config_name
         return 1
     end
 
-    # 创建 Pod
-    # 捕获所有输出并获取最后一行作为Pod名称
-    set -l pod_output (_brow_pod_create $config_name)
-    if test $status -ne 0
-        echo "错误: 创建 Pod 失败"
-        return 1
-    end
-
-    # 获取最后一行作为Pod名称
-    set -l pod_id (echo $pod_output[-1])
-
-    echo "获取到Pod名称: $pod_id"
-
-    # 等待一会儿，确保Pod已经被Kubernetes API服务器完全识别
-    sleep 2
-
-    # 获取配置中的本地端口和上下文
+    # 获取配置中的本地端口
     set -l config_data (_brow_config_get $config_name)
     set -l local_port (echo $config_data | jq -r '.local_port')
-    set -l k8s_context (echo $config_data | jq -r '.k8s_context')
 
-    # 开始端口转发
-    set -l forward_id (_brow_forward_start $pod_id $local_port $k8s_context)
+    # 直接调用_brow_forward_start函数，它会处理Pod的创建和端口转发
+    set -l forward_output (_brow_forward_start $config_name $local_port)
     set -l forward_status $status
 
     if test $forward_status -ne 0
@@ -317,13 +241,6 @@ function _brow_connect --argument-names config_name
         # 尝试使用备用端口
         set -l backup_port (math $local_port + 1000)
         echo "尝试端口: $backup_port"
-        set forward_id (_brow_forward_start $pod_id $backup_port $k8s_context)
-        if test $status -eq 0
-            echo ""
-            echo "转发ID: $forward_id"
-        end
-    else
-        echo ""
-        echo "转发ID: $forward_id"
+        _brow_forward_start $config_name $backup_port
     end
 end
