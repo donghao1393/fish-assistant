@@ -34,7 +34,36 @@ function __brow_config_names
 end
 
 function __brow_pod_ids
-    kubectl get pods --selector=app --output=json 2>/dev/null | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name'
+    # 获取所有上下文
+    set -l contexts (kubectl config get-contexts --output=name 2>/dev/null)
+
+    # 遍历所有上下文
+    for ctx in $contexts
+        # 获取当前上下文中的所有Pod
+        set -l pods_json (kubectl --context=$ctx get pods --output=json 2>/dev/null)
+        if test $status -ne 0
+            continue
+        end
+
+        # 使用jq提取所有brow Pod的信息
+        set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name' 2>/dev/null)
+
+        # 处理每个Pod
+        for pod_name in $pod_names
+            # 获取单个Pod的详细信息
+            set -l pod_json (kubectl --context=$ctx get pod $pod_name -o json 2>/dev/null)
+
+            # 提取Pod信息
+            set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
+            set -l pod_status (echo $pod_json | jq -r '.status.phase')
+
+            # 显示简化的上下文名称
+            set -l short_ctx (echo $ctx | string replace -r '.*/' '')
+
+            # 输出格式：Pod名称\t配置 (上下文) [状态]
+            echo "$pod_name\t$config_name ($short_ctx) [$pod_status]"
+        end
+    end
 end
 
 function __brow_forward_ids
