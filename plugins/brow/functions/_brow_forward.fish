@@ -154,8 +154,20 @@ function _brow_forward_list
     echo 端口转发列表:
     echo
 
+    # 定义列标题和宽度
+    set -l headers ID 配置 本地端口 远程端口 PID 状态
+    set -l widths 10 15 15 15 10 15
+
+    # 计算标题的可见宽度
+    for i in (seq (count $headers))
+        set -l header_width (string length --visible -- $headers[$i])
+        if test $header_width -gt $widths[$i]
+            set widths[$i] $header_width
+        end
+    end
+
     # 打印表头
-    printf "%-10s %-15s %-15s %-15s %-10s %-15s\n" ID 配置 本地端口 远程端口 PID 状态
+    printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s %-"$widths[6]"s\n" $headers
 
     # 处理每个转发记录
     for file in $forward_files
@@ -235,8 +247,11 @@ function _brow_forward_list
         set forward_status 活跃
         set status_color green
 
+        # 准备显示数据
+        set -l display_data $forward_id $config_name $local_port $remote_port $pid
+
         # 使用颜色输出状态
-        printf "%-10s %-15s %-15s %-15s %-10s " $forward_id $config_name $local_port $remote_port $pid
+        printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s " $display_data
         set_color $status_color
         echo $forward_status
         set_color normal

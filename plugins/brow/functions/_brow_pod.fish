@@ -159,8 +159,20 @@ function _brow_pod_list
     echo "活跃的brow Pod:"
     echo
 
+    # 定义列标题和宽度
+    set -l headers Pod名称 配置 服务 创建时间 TTL 状态 上下文
+    set -l widths 30 15 15 15 15 15 15
+
+    # 计算标题的可见宽度
+    for i in (seq (count $headers))
+        set -l header_width (string length --visible -- $headers[$i])
+        if test $header_width -gt $widths[$i]
+            set widths[$i] $header_width
+        end
+    end
+
     # 打印表头
-    printf "%-30s %-15s %-15s %-15s %-15s %-15s %-15s\n" Pod名称 配置 服务 创建时间 TTL 状态 上下文
+    printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s %-"$widths[6]"s %-"$widths[7]"s\n" $headers
 
     # 遍历配置中的上下文
     for ctx in $contexts
@@ -218,7 +230,11 @@ function _brow_pod_list
             # 显示简化的上下文名称
             set -l short_ctx (echo $ctx | string replace -r '.*/' '')
 
-            printf "%-30s %-15s %-15s %-15s %-15s %-15s %-15s\n" $pod_name $config_name $service_name $created_at $ttl $pod_status $short_ctx
+            # 准备显示数据
+            set -l display_data $pod_name $config_name $service_name $created_at $ttl $pod_status $short_ctx
+
+            # 打印行
+            printf "%-"$widths[1]"s %-"$widths[2]"s %-"$widths[3]"s %-"$widths[4]"s %-"$widths[5]"s %-"$widths[6]"s %-"$widths[7]"s\n" $display_data
         end
     end
 
