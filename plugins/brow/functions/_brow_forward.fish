@@ -8,8 +8,8 @@ function _brow_forward_start --argument-names config_name local_port
 
     # 检查配置是否存在
     if not _brow_config_exists $clean_config_name
-        echo "错误: 配置 '$clean_config_name' 不存在"
-        echo "请使用 'brow config list' 查看可用的配置"
+        echo (_brow_i18n_format "error_config_not_found" $clean_config_name)
+        echo (_brow_i18n_get "use_config_list")
         return 1
     end
 
@@ -43,8 +43,8 @@ function _brow_forward_start --argument-names config_name local_port
             set -l forward_id (basename $file | string replace -r "forward-$clean_config_name-" "" | string replace ".json" "")
             set -l existing_local_port (echo $forward_data | jq -r '.local_port')
 
-            echo "配置 '$clean_config_name' 已有活跃的转发 (ID: $forward_id, 端口: $existing_local_port)"
-            echo "请先使用 'brow forward stop $forward_id' 停止现有转发"
+            echo (_brow_i18n_format "config_has_active_forward" $clean_config_name $forward_id $existing_local_port)
+            echo (_brow_i18n_format "please_stop_forward_first" $forward_id)
             return 1
         else
             # 如果进程不存在，删除记录文件
@@ -53,7 +53,7 @@ function _brow_forward_start --argument-names config_name local_port
     end
 
     # 获取或创建Pod
-    echo "获取配置 '$clean_config_name' 的Pod..." >&2
+    echo (_brow_i18n_format "getting_pod_for_config" $clean_config_name) >&2
 
     # 直接调用_brow_pod_create函数并捕获其输出
     # 使用command substitution来执行函数并获取其输出
@@ -61,23 +61,23 @@ function _brow_forward_start --argument-names config_name local_port
     set -l pod_status $status
 
     if test $pod_status -ne 0
-        echo "错误: 无法获取或创建Pod" >&2
+        echo (_brow_i18n_get "error_getting_pod") >&2
         return 1
     end
 
     # 确保我们有一个有效的Pod ID
     if test -z "$pod_id"
-        echo "错误: 获取到空的Pod ID" >&2
+        echo (_brow_i18n_get "error_empty_pod_id") >&2
         return 1
     end
 
     # 验证Pod是否存在
     if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
-        echo "错误: Pod '$pod_id' 不存在，可能创建失败或已被删除" >&2
+        echo (_brow_i18n_format "error_pod_not_exist" $pod_id) >&2
         return 1
     end
 
-    echo "获取到Pod名称: $pod_id" >&2
+    echo (_brow_i18n_format "got_pod_name" $pod_id) >&2
 
     # 生成唯一的转发ID
     set -l forward_id (date +%s%N | shasum | head -c 8)
@@ -104,19 +104,19 @@ function _brow_forward_start --argument-names config_name local_port
 
     # 检查进程是否仍在运行
     if not kill -0 $pid 2>/dev/null
-        echo "错误: 端口转发启动失败" >&2
+        echo (_brow_i18n_get "error_port_forward_failed") >&2
 
         # 显示错误详情
         if test -f $error_file
-            echo "错误详情:" >&2
+            echo (_brow_i18n_get "error_details") >&2
             cat $error_file >&2
             rm $error_file
         end
 
         # 检查端口是否被占用
-        echo "检查端口 $local_port 是否被占用..." >&2
+        echo (_brow_i18n_format "checking_port_usage" $local_port) >&2
         if lsof -i :$local_port >/dev/null 2>&1
-            echo "端口 $local_port 已被占用。请尝试其他端口。" >&2
+            echo (_brow_i18n_format "port_in_use" $local_port) >&2
         end
 
         return 1
@@ -129,7 +129,7 @@ function _brow_forward_start --argument-names config_name local_port
     set -l forward_data (jo config=$clean_config_name pod_id=$pod_id local_port=$local_port remote_port=$remote_port pid=$pid)
     echo $forward_data >$forward_file
 
-    echo "端口转发已启动: localhost:$local_port -> $pod_id:$remote_port (ID: $forward_id)" >&2
+    echo (_brow_i18n_format "port_forward_started" $local_port $pod_id $remote_port $forward_id) >&2
 
     # 返回转发ID
     echo $forward_id
@@ -224,7 +224,7 @@ function _brow_forward_list
         # 首先检查进程是否仍在运行
         if not kill -0 $pid 2>/dev/null
             # 如果进程不存在，删除记录文件
-            echo "清理失效的转发记录: $forward_id ($config_name)" >&2
+            echo (_brow_i18n_format "cleaning_invalid_forward" $forward_id $config_name) >&2
             rm $file 2>/dev/null
             continue
         end
@@ -248,7 +248,7 @@ function _brow_forward_list
         if test "$pod_id" != unknown -a "$pod_id" != ""
             if not kubectl --context=$k8s_context get pod $pod_id >/dev/null 2>&1
                 # 如果Pod不存在，停止转发进程并删除记录文件
-                echo "发现转发对应的Pod不存在: $pod_id, 正在清理..." >&2
+                echo (_brow_i18n_format "forward_pod_not_exist" $pod_id) >&2
                 kill $pid 2>/dev/null
                 rm $file 2>/dev/null
                 continue
@@ -351,7 +351,7 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
             kill $pid 2>/dev/null
             echo (_brow_i18n_get "forward_stopped")
         else
-            echo "转发进程已经不存在，清理记录"
+            echo (_brow_i18n_get "forward_process_not_exist")
         end
 
         # 删除记录文件
@@ -397,7 +397,7 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
                     echo (_brow_i18n_format "pod_delete_failed" $pod_id)
                 end
             else
-                echo "Pod '$pod_id' 还有其他活跃的转发，不删除"
+                echo (_brow_i18n_format "pod_has_other_forwards" $pod_id)
             end
         end
     end

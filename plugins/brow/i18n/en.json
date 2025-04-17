@@ -179,5 +179,22 @@
   "minutes_remaining": "%s minutes",
   "hours_remaining": "%s hours",
   "days_remaining": "%s days",
-  "querying_brow_pods": "Querying brow Pods..."
+  "querying_brow_pods": "Querying brow Pods...",
+
+  "config_has_active_forward": "Config '%s' already has an active forward (ID: %s, port: %s)",
+  "please_stop_forward_first": "Please use 'brow forward stop %s' to stop the existing forward first",
+  "getting_pod_for_config": "Getting Pod for config '%s'...",
+  "error_getting_pod": "Error: Could not get or create Pod",
+  "error_empty_pod_id": "Error: Got empty Pod ID",
+  "error_pod_not_exist": "Error: Pod '%s' does not exist, it may have failed to create or been deleted",
+  "got_pod_name": "Got Pod name: %s",
+  "error_port_forward_failed": "Error: Port forwarding failed to start",
+  "error_details": "Error details:",
+  "checking_port_usage": "Checking if port %s is in use...",
+  "port_in_use": "Port %s is already in use. Please try another port.",
+  "port_forward_started": "Port forwarding started: localhost:%s -> %s:%s (ID: %s)",
+  "cleaning_invalid_forward": "Cleaning invalid forward record: %s (%s)",
+  "forward_pod_not_exist": "Found forward with non-existent Pod: %s, cleaning up...",
+  "forward_process_not_exist": "Forward process no longer exists, cleaning record",
+  "pod_has_other_forwards": "Pod '%s' has other active forwards, not deleting"
 }

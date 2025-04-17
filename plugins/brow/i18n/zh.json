@@ -179,5 +179,22 @@
   "minutes_remaining": "%s 分钟",
   "hours_remaining": "%s 小时",
   "days_remaining": "%s 天",
-  "querying_brow_pods": "正在查询brow Pod..."
+  "querying_brow_pods": "正在查询brow Pod...",
+
+  "config_has_active_forward": "配置 '%s' 已有活跃的转发 (ID: %s, 端口: %s)",
+  "please_stop_forward_first": "请先使用 'brow forward stop %s' 停止现有转发",
+  "getting_pod_for_config": "获取配置 '%s' 的Pod...",
+  "error_getting_pod": "错误: 无法获取或创建Pod",
+  "error_empty_pod_id": "错误: 获取到空的Pod ID",
+  "error_pod_not_exist": "错误: Pod '%s' 不存在，可能创建失败或已被删除",
+  "got_pod_name": "获取到Pod名称: %s",
+  "error_port_forward_failed": "错误: 端口转发启动失败",
+  "error_details": "错误详情:",
+  "checking_port_usage": "检查端口 %s 是否被占用...",
+  "port_in_use": "端口 %s 已被占用。请尝试其他端口。",
+  "port_forward_started": "端口转发已启动: localhost:%s -> %s:%s (ID: %s)",
+  "cleaning_invalid_forward": "清理失效的转发记录: %s (%s)",
+  "forward_pod_not_exist": "发现转发对应的Pod不存在: %s, 正在清理...",
+  "forward_process_not_exist": "转发进程已经不存在，清理记录",
+  "pod_has_other_forwards": "Pod '%s' 还有其他活跃的转发，不删除"
 }
