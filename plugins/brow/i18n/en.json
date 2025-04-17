@@ -71,5 +71,38 @@
   "language_set": "Language set to: %s",
   "language_current": "Current language: %s",
   "language_not_supported": "Unsupported language: %s",
-  "available_languages": "Available languages: %s"
+  "available_languages": "Available languages: %s",
+
+  "help_title": "brow - Kubernetes Connection Manager",
+  "help_main_commands": "Main Commands:",
+  "help_cmd_connect": "  brow connect <config_name> [local_port]     Create connection to specified config",
+  "help_cmd_list": "  brow list                                List active connections",
+  "help_cmd_stop": "  brow stop <forward_id|config_name>       Stop connection and delete Pod",
+
+  "help_config_management": "Configuration Management:",
+  "help_cmd_config_add": "  brow config add <name> <k8s_context> <ip> [local_port] [remote_port] [service_name] [ttl]",
+  "help_cmd_config_list": "  brow config list                        List all configurations",
+  "help_cmd_config_show": "  brow config show <name>                 Show specific configuration details",
+  "help_cmd_config_edit": "  brow config edit <name>                 Edit configuration",
+  "help_cmd_config_remove": "  brow config remove <name>               Delete configuration",
+
+  "help_advanced_features": "Advanced Features:",
+  "help_cmd_pod_list": "  brow pod list                           List all current Pods",
+  "help_cmd_pod_info": "  brow pod info <config_name>             View Pod details for specified config",
+  "help_cmd_pod_delete": "  brow pod delete <config_name>           Delete Pod for specified config",
+  "help_cmd_pod_cleanup": "  brow pod cleanup                        Clean up expired Pods",
+  "help_cmd_forward_list": "  brow forward list                       List active forwards (same as brow list)",
+  "help_cmd_forward_stop": "  brow forward stop <id|config_name>      Stop forwarding (without deleting Pod)",
+  "help_cmd_forward_start": "  brow forward start <config_name> [local_port]  Start port forwarding (same as brow connect)",
+  "help_cmd_health_check": "  brow health-check                        Check and fix inconsistent states",
+  "help_cmd_language": "  brow language                           Show current language setting",
+  "help_cmd_language_set": "  brow language set <language_code>        Set language (zh, en, ...)",
+  "help_cmd_version": "  brow version                            Show version information",
+  "help_cmd_help": "  brow help                               Show this help information",
+
+  "help_examples": "Examples:",
+  "help_example_config_add": "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m",
+  "help_example_connect": "  brow connect mysql-dev                  # Create connection",
+  "help_example_list": "  brow list                               # View connections",
+  "help_example_stop": "  brow stop mysql-dev                    # Stop connection"
 }

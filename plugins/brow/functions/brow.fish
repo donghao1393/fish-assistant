@@ -277,39 +277,39 @@ function brow --description "Kubernetes 连接管理工具"
 end
 
 function _brow_help
-    echo "brow - Kubernetes 连接管理工具"
+    echo (_brow_i18n_get "help_title")
     echo
-    echo "主要命令:"
-    echo "  brow connect <配置名称> [本地端口]     创建连接到指定配置"
-    echo "  brow list                         列出活跃的连接"
-    echo "  brow stop <连接ID|配置名称>        停止连接并删除Pod"
+    echo (_brow_i18n_get "help_main_commands")
+    echo (_brow_i18n_get "help_cmd_connect")
+    echo (_brow_i18n_get "help_cmd_list")
+    echo (_brow_i18n_get "help_cmd_stop")
     echo
-    echo "配置管理:"
-    echo "  brow config add <名称> <Kubernetes上下文> <IP> [本地端口] [远程端口] [服务名称] [TTL]"
-    echo "  brow config list                  列出所有配置"
-    echo "  brow config show <名称>           显示特定配置详情"
-    echo "  brow config edit <名称>           编辑配置"
-    echo "  brow config remove <名称>         删除配置"
+    echo (_brow_i18n_get "help_config_management")
+    echo (_brow_i18n_get "help_cmd_config_add")
+    echo (_brow_i18n_get "help_cmd_config_list")
+    echo (_brow_i18n_get "help_cmd_config_show")
+    echo (_brow_i18n_get "help_cmd_config_edit")
+    echo (_brow_i18n_get "help_cmd_config_remove")
     echo
-    echo "高级功能:"
-    echo "  brow pod list                     列出当前所有 Pod"
-    echo "  brow pod info <配置名称>         查看指定配置的 Pod 详情"
-    echo "  brow pod delete <配置名称>       删除指定配置的 Pod"
-    echo "  brow pod cleanup                  清理过期的 Pod"
-    echo "  brow forward list                 列出活跃的转发 (同 brow list)"
-    echo "  brow forward stop <ID|配置名称>    停止转发 (不删除Pod)"
-    echo "  brow forward start <配置名称> [本地端口]  开始端口转发 (同 brow connect)"
-    echo "  brow health-check                  检查和修复不一致的状态"
-    echo "  brow language                     显示当前语言设置"
-    echo "  brow language set <语言代码>      设置语言 (zh, en, ...)"
-    echo "  brow version                      显示版本信息"
-    echo "  brow help                         显示此帮助信息"
+    echo (_brow_i18n_get "help_advanced_features")
+    echo (_brow_i18n_get "help_cmd_pod_list")
+    echo (_brow_i18n_get "help_cmd_pod_info")
+    echo (_brow_i18n_get "help_cmd_pod_delete")
+    echo (_brow_i18n_get "help_cmd_pod_cleanup")
+    echo (_brow_i18n_get "help_cmd_forward_list")
+    echo (_brow_i18n_get "help_cmd_forward_stop")
+    echo (_brow_i18n_get "help_cmd_forward_start")
+    echo (_brow_i18n_get "help_cmd_health_check")
+    echo (_brow_i18n_get "help_cmd_language")
+    echo (_brow_i18n_get "help_cmd_language_set")
+    echo (_brow_i18n_get "help_cmd_version")
+    echo (_brow_i18n_get "help_cmd_help")
     echo
-    echo "示例:"
-    echo "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m"
-    echo "  brow connect mysql-dev            # 创建连接"
-    echo "  brow list                         # 查看连接"
-    echo "  brow stop mysql-dev              # 停止连接"
+    echo (_brow_i18n_get "help_examples")
+    echo (_brow_i18n_get "help_example_config_add")
+    echo (_brow_i18n_get "help_example_connect")
+    echo (_brow_i18n_get "help_example_list")
+    echo (_brow_i18n_get "help_example_stop")
 end
 
 function _brow_connect --argument-names config_name local_port
