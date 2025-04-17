@@ -156,7 +156,13 @@ function brow --description "Kubernetes 连接管理工具"
                     end
 
                     # 直接调用_brow_forward_start函数，并将其输出传递给用户
-                    _brow_forward_start $config_name $local_port
+                    # 返回值是转发ID
+                    set -l forward_id (_brow_forward_start $config_name $local_port)
+
+                    # 如果成功，显示转发ID
+                    if test $status -eq 0
+                        echo "转发ID: $forward_id"
+                    end
                 case list
                     _brow_forward_list
                 case stop
@@ -233,7 +239,7 @@ function _brow_connect --argument-names config_name
     set -l local_port (echo $config_data | jq -r '.local_port')
 
     # 直接调用_brow_forward_start函数，它会处理Pod的创建和端口转发
-    set -l forward_output (_brow_forward_start $config_name $local_port)
+    set -l forward_id (_brow_forward_start $config_name $local_port)
     set -l forward_status $status
 
     if test $forward_status -ne 0
@@ -241,6 +247,11 @@ function _brow_connect --argument-names config_name
         # 尝试使用备用端口
         set -l backup_port (math $local_port + 1000)
         echo "尝试端口: $backup_port"
-        _brow_forward_start $config_name $backup_port
+        set -l backup_id (_brow_forward_start $config_name $backup_port)
+        if test $status -eq 0
+            echo "转发ID: $backup_id"
+        end
+    else
+        echo "转发ID: $forward_id"
     end
 end
