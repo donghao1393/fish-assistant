@@ -53,18 +53,17 @@ function _brow_forward_start --argument-names config_name local_port
     end
 
     # 获取或创建Pod
-    echo "获取配置 '$clean_config_name' 的Pod..."
-    set -l pod_output (_brow_pod_create $clean_config_name)
+    echo "获取配置 '$clean_config_name' 的Pod..." >&2
+    set -l pod_id (_brow_pod_create $clean_config_name)
     set -l pod_status $status
 
     if test $pod_status -ne 0
-        echo "错误: 无法获取或创建Pod"
+        echo "错误: 无法获取或创建Pod" >&2
         return 1
     end
 
-    # 获取最后一行作为Pod名称
-    set -l pod_id $pod_output[-1]
-    echo "获取到Pod名称: $pod_id"
+    # 现在pod_id已经是纯净的Pod名称，不需要再提取
+    echo "获取到Pod名称: $pod_id" >&2
 
     # 生成唯一的转发ID
     set -l forward_id (date +%s%N | shasum | head -c 8)
@@ -91,19 +90,19 @@ function _brow_forward_start --argument-names config_name local_port
 
     # 检查进程是否仍在运行
     if not kill -0 $pid 2>/dev/null
-        echo "错误: 端口转发启动失败"
+        echo "错误: 端口转发启动失败" >&2
 
         # 显示错误详情
         if test -f $error_file
-            echo "错误详情:"
-            cat $error_file
+            echo "错误详情:" >&2
+            cat $error_file >&2
             rm $error_file
         end
 
         # 检查端口是否被占用
-        echo "检查端口 $local_port 是否被占用..."
+        echo "检查端口 $local_port 是否被占用..." >&2
         if lsof -i :$local_port >/dev/null 2>&1
-            echo "端口 $local_port 已被占用。请尝试其他端口。"
+            echo "端口 $local_port 已被占用。请尝试其他端口。" >&2
         end
 
         return 1
@@ -116,7 +115,7 @@ function _brow_forward_start --argument-names config_name local_port
     set -l forward_data (jo config=$clean_config_name pod_id=$pod_id local_port=$local_port remote_port=$remote_port pid=$pid)
     echo $forward_data >$forward_file
 
-    echo "端口转发已启动: localhost:$local_port -> $pod_id:$remote_port (ID: $forward_id)"
+    echo "端口转发已启动: localhost:$local_port -> $pod_id:$remote_port (ID: $forward_id)" >&2
 
     # 返回转发ID
     echo $forward_id
