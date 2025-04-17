@@ -581,7 +581,7 @@ function _brow_pod_cleanup
             # 提取Pod信息
             set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // ""')
             set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // ""')
-            set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
+            set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "unknown"')
             set -l pod_status (echo $pod_json | jq -r '.status.phase')
 
             # 检查Pod是否应该被清理
