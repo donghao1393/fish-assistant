@@ -268,7 +268,7 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
         rm $file
 
         # 如果需要自动删除Pod，将Pod ID添加到列表中
-        if test "$auto_delete_pod" = true -a "$pod_id" != unknown
+        if test "$auto_delete_pod" = true -a "$pod_id" != unknown -a "$pod_id" != ""
             if not contains $pod_id $pods_to_delete
                 set -a pods_to_delete $pod_id
             end
