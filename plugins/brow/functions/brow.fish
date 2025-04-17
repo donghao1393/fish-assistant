@@ -52,7 +52,7 @@ function brow --description "Kubernetes 连接管理工具"
     switch $cmd
         case config
             if test (count $argv) -lt 1
-                echo "错误: config 命令需要指定操作类型 (add/list/show/edit/remove)"
+                echo (_brow_i18n_get "error_config_cmd")
                 return 1
             end
 
@@ -66,31 +66,31 @@ function brow --description "Kubernetes 连接管理工具"
                     _brow_config_list
                 case show
                     if test (count $argv) -ne 1
-                        echo "用法: brow config show <配置名称>"
+                        echo (_brow_i18n_get "usage_config_show")
                         return 1
                     end
                     _brow_config_show $argv[1]
                 case edit
                     if test (count $argv) -ne 1
-                        echo "用法: brow config edit <配置名称>"
+                        echo (_brow_i18n_get "usage_config_edit")
                         return 1
                     end
                     _brow_config_edit $argv[1]
                 case remove
                     if test (count $argv) -ne 1
-                        echo "用法: brow config remove <配置名称>"
+                        echo (_brow_i18n_get "usage_config_remove")
                         return 1
                     end
                     _brow_config_remove $argv[1]
                 case '*'
-                    echo "未知的 config 子命令: $subcmd"
-                    echo "可用的子命令: add, list, show, edit, remove"
+                    echo (_brow_i18n_format "unknown_config_subcmd" $subcmd)
+                    echo (_brow_i18n_get "available_config_subcmds")
                     return 1
             end
 
         case pod
             if test (count $argv) -lt 1
-                echo "错误: pod 命令需要指定操作类型 (create/list/info/delete/cleanup)"
+                echo (_brow_i18n_get "error_pod_cmd")
                 return 1
             end
 
@@ -100,7 +100,7 @@ function brow --description "Kubernetes 连接管理工具"
             switch $subcmd
                 case create
                     if test (count $argv) -ne 1
-                        echo "用法: brow pod create <配置名称>"
+                        echo (_brow_i18n_get "usage_pod_create")
                         return 1
                     end
                     _brow_pod_create $argv[1]
@@ -108,27 +108,27 @@ function brow --description "Kubernetes 连接管理工具"
                     _brow_pod_list
                 case info
                     if test (count $argv) -ne 1
-                        echo "用法: brow pod info <pod-id|配置名称>"
+                        echo (_brow_i18n_get "usage_pod_info")
                         return 1
                     end
                     _brow_pod_info $argv[1]
                 case delete
                     if test (count $argv) -ne 1
-                        echo "用法: brow pod delete <pod-id|配置名称>"
+                        echo (_brow_i18n_get "usage_pod_delete")
                         return 1
                     end
                     _brow_pod_delete $argv[1]
                 case cleanup
                     _brow_pod_cleanup
                 case '*'
-                    echo "未知的 pod 子命令: $subcmd"
-                    echo "可用的子命令: create, list, info, delete, cleanup"
+                    echo (_brow_i18n_format "unknown_pod_subcmd" $subcmd)
+                    echo (_brow_i18n_get "available_pod_subcmds")
                     return 1
             end
 
         case forward
             if test (count $argv) -lt 1
-                echo "错误: forward 命令需要指定操作类型 (start/list/stop)"
+                echo (_brow_i18n_get "error_forward_cmd")
                 return 1
             end
 
@@ -138,7 +138,7 @@ function brow --description "Kubernetes 连接管理工具"
             switch $subcmd
                 case start
                     if test (count $argv) -lt 1
-                        echo "用法: brow forward start <配置名称> [local_port]"
+                        echo (_brow_i18n_get "usage_forward_start")
                         return 1
                     end
 
@@ -168,14 +168,14 @@ function brow --description "Kubernetes 连接管理工具"
                     _brow_forward_list
                 case stop
                     if test (count $argv) -ne 1
-                        echo "用法: brow forward stop <forward-id|配置名称>"
+                        echo (_brow_i18n_get "usage_forward_stop")
                         return 1
                     end
                     # 不自动删除Pod（第二个参数为false）
                     _brow_forward_stop $argv[1] false
                 case '*'
-                    echo "未知的 forward 子命令: $subcmd"
-                    echo "可用的子命令: start, list, stop"
+                    echo (_brow_i18n_format "unknown_forward_subcmd" $subcmd)
+                    echo (_brow_i18n_get "available_forward_subcmds")
                     return 1
             end
 
@@ -186,7 +186,7 @@ function brow --description "Kubernetes 连接管理工具"
         case stop
             # 停止连接，直接调用forward stop
             if test (count $argv) -ne 1
-                echo "用法: brow stop <连接ID|配置名称>"
+                echo (_brow_i18n_get "usage_stop")
                 return 1
             end
             # 自动删除Pod（第二个参数为true）
@@ -195,7 +195,7 @@ function brow --description "Kubernetes 连接管理工具"
         case connect
             # 创建连接
             if test (count $argv) -lt 1
-                echo "用法: brow connect <配置名称> [本地端口]"
+                echo (_brow_i18n_get "usage_connect")
                 return 1
             end
 
@@ -270,7 +270,7 @@ function brow --description "Kubernetes 连接管理工具"
             _brow_help
 
         case '*'
-            echo "未知命令: $cmd"
+            echo (_brow_i18n_format "unknown_command" $cmd)
             _brow_help
             return 1
     end
