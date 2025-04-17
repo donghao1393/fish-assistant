@@ -53,13 +53,13 @@ function __brow_forward_ids
                 set -l pid (echo $forward_data | jq -r '.pid')
 
                 # 检查进程是否仍在运行
-                set -l status 已停止
+                set -l forward_status 已停止
                 if kill -0 $pid 2>/dev/null
-                    set status 活跃
+                    set forward_status 活跃
                 end
 
                 # 输出格式："ID\t配置 (本地端口) -> Pod [状态]"
-                echo "$forward_id\t$config (端口:$local_port) -> $pod_id [$status]"
+                echo "$forward_id\t$config (端口:$local_port) -> $pod_id [$forward_status]"
             end
         end
     end

@@ -157,17 +157,17 @@ function _brow_forward_list
         set -l config (echo $forward_data | jq -r '.config // "unknown"')
 
         # 检查进程是否仍在运行
-        set -l status 已停止
+        set -l forward_status 已停止
         set -l status_color red
         if kill -0 $pid 2>/dev/null
-            set status 活跃
+            set forward_status 活跃
             set status_color green
         end
 
         # 使用颜色输出状态
         printf "%-10s %-30s %-15s %-15s %-10s %-15s " $forward_id $pod_id $local_port $remote_port $pid $config
         set_color $status_color
-        echo $status
+        echo $forward_status
         set_color normal
     end
 end
