@@ -144,9 +144,20 @@ function _brow_forward_list
 
     # 处理每个转发记录
     for file in $forward_files
+        # 从文件名中提取信息
         set -l filename (basename $file)
-        set -l parts (string split "-" $filename)
-        set -l forward_id (string replace ".json" "" $parts[-1])
+
+        # 文件名格式应该是 forward-<pod_id>-<forward_id>.json
+        # 例如：forward-brow-proxy-a95c4f8e-0df206e8.json
+
+        # 提取forward_id（最后一部分）
+        set -l parts (string split ".json" $filename)
+        set -l name_parts (string split "-" $parts[1])
+        set -l forward_id $name_parts[-1]
+
+        # 提取pod_id（中间部分）
+        set -l pod_parts (string split "-$forward_id" $parts[1])
+        set -l pod_id_from_filename (string replace "forward-" "" $pod_parts[1])
 
         # 读取转发数据
         set -l forward_data (cat $file)
@@ -155,6 +166,11 @@ function _brow_forward_list
         set -l remote_port (echo $forward_data | jq -r '.remote_port')
         set -l pid (echo $forward_data | jq -r '.pid')
         set -l config (echo $forward_data | jq -r '.config // "unknown"')
+
+        # 如果文件内容中的pod_id与文件名中的不一致，使用文件名中的
+        if test "$pod_id" = unknown -o "$pod_id" = brow
+            set pod_id $pod_id_from_filename
+        end
 
         # 检查进程是否仍在运行
         set -l forward_status 已停止
