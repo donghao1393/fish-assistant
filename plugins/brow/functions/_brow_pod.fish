@@ -279,7 +279,19 @@ function _brow_pod_info --argument-names pod_id_or_config
     end
 
     # 获取Pod详细信息
-    set -l pod_json (kubectl get pod $pod_id -o json)
+    # 获取Pod所在的上下文
+    set -l k8s_context ""
+    if _brow_config_exists $pod_id_or_config
+        set -l config_data (_brow_config_get $pod_id_or_config)
+        set k8s_context (echo $config_data | jq -r '.k8s_context')
+    end
+
+    # 如果没有上下文，使用当前上下文
+    if test -z "$k8s_context"
+        set k8s_context (kubectl config current-context)
+    end
+
+    set -l pod_json (kubectl --context=$k8s_context get pod $pod_id -o json)
 
     # 提取信息
     set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
