@@ -55,21 +55,22 @@ function _brow_forward_start --argument-names config_name local_port
     # 获取或创建Pod
     echo "获取配置 '$clean_config_name' 的Pod..." >&2
 
-    # 使用临时文件来捕获_brow_pod_create函数的输出
-    set -l pod_output_file (mktemp)
-    _brow_pod_create $clean_config_name >$pod_output_file 2>&1
+    # 直接调用_brow_pod_create函数并捕获其输出
+    # 使用command substitution来执行函数并获取其输出
+    set -l pod_id (_brow_pod_create $clean_config_name)
     set -l pod_status $status
 
     if test $pod_status -ne 0
         echo "错误: 无法获取或创建Pod" >&2
-        cat $pod_output_file >&2
-        rm $pod_output_file
         return 1
     end
 
-    # 从文件中读取Pod名称
-    set -l pod_id (cat $pod_output_file)
-    rm $pod_output_file
+    # 确保我们有一个有效的Pod ID
+    if test -z "$pod_id"
+        echo "错误: 获取到空的Pod ID" >&2
+        return 1
+    end
+
     echo "获取到Pod名称: $pod_id" >&2
 
     # 生成唯一的转发ID

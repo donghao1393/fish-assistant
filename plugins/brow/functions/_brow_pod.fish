@@ -1,5 +1,6 @@
 function _brow_pod_create --argument-names config_name
     # 根据配置创建Pod
+    # 返回值: Pod名称（如果成功）
 
     if not _brow_config_exists $config_name
         echo "错误: 配置 '$config_name' 不存在" >&2
@@ -16,16 +17,15 @@ function _brow_pod_create --argument-names config_name
 
     # 检查是否已经有该配置的Pod在运行
     # 使用stderr输出状态信息，避免影响stdout的返回值
-    echo -n "检查是否已有运行中的Pod... " >&2
+    echo "检查是否已有运行中的Pod..." >&2
     set -l existing_pods (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null | jq -r '.items[] | select(.status.phase == "Running") | .metadata.name')
-    echo 完成 >&2
 
     # 如果已经有运行中的Pod，直接返回该Pod
     if test -n "$existing_pods"
         set -l pod_name $existing_pods[1]
         echo "发现配置 '$config_name' 的Pod已存在: $pod_name" >&2
         # 只返回纯净的Pod名称，不返回其他信息
-        echo -n "$pod_name"
+        echo "$pod_name"
         return 0
     end
 
@@ -135,8 +135,8 @@ spec:
     echo "远程端口: $remote_port" >&2
     echo "TTL: $ttl" >&2
 
-    # 返回Pod名称，使用echo -n确保不会添加换行符
-    echo -n "$pod_name"
+    # 返回Pod名称
+    echo "$pod_name"
     return 0
 end
 
