@@ -2,7 +2,7 @@ function _brow_pod_create --argument-names config_name
     # 根据配置创建Pod
 
     if not _brow_config_exists $config_name
-        echo "错误: 配置 '$config_name' 不存在"
+        echo "错误: 配置 '$config_name' 不存在" >&2
         return 1
     end
 
@@ -24,7 +24,8 @@ function _brow_pod_create --argument-names config_name
     if test -n "$existing_pods"
         set -l pod_name $existing_pods[1]
         echo "发现配置 '$config_name' 的Pod已存在: $pod_name" >&2
-        echo $pod_name
+        # 只返回纯净的Pod名称，不返回其他信息
+        echo -n "$pod_name"
         return 0
     end
 
@@ -134,8 +135,8 @@ spec:
     echo "远程端口: $remote_port" >&2
     echo "TTL: $ttl" >&2
 
-    # 返回Pod名称
-    echo $pod_name
+    # 返回Pod名称，使用echo -n确保不会添加换行符
+    echo -n "$pod_name"
     return 0
 end
 
