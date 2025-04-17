@@ -3,7 +3,7 @@ function _brow_pod_create --argument-names config_name
     # 返回值: Pod名称（如果成功）
 
     if not _brow_config_exists $config_name
-        echo "错误: 配置 '$config_name' 不存在" >&2
+        echo (_brow_i18n_format "error_config_not_found" $config_name) >&2
         return 1
     end
 
@@ -17,13 +17,13 @@ function _brow_pod_create --argument-names config_name
 
     # 检查是否已经有该配置的Pod在运行
     # 使用stderr输出状态信息，避免影响stdout的返回值
-    echo "检查是否已有运行中的Pod..." >&2
+    echo (_brow_i18n_get "checking_running_pods") >&2
     set -l existing_pods (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null | jq -r '.items[] | select(.status.phase == "Running") | .metadata.name')
 
     # 如果已经有运行中的Pod，直接返回该Pod
     if test -n "$existing_pods"
         set -l pod_name $existing_pods[1]
-        echo "发现配置 '$config_name' 的Pod已存在: $pod_name" >&2
+        echo (_brow_i18n_format "pod_exists" $config_name $pod_name) >&2
         # 只返回纯净的Pod名称，不返回其他信息
         echo "$pod_name"
         return 0
@@ -32,9 +32,9 @@ function _brow_pod_create --argument-names config_name
     # 清理该配置的所有非运行状态的Pod
     set -l old_pods (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null | jq -r '.items[] | select(.status.phase != "Running") | .metadata.name')
     if test -n "$old_pods"
-        echo "清理配置 '$config_name' 的旧Pod..." >&2
+        echo (_brow_i18n_format "cleaning_old_pods" $config_name) >&2
         for old_pod in $old_pods
-            echo "  删除Pod: $old_pod" >&2
+            echo (_brow_i18n_format "deleting_pod" $old_pod) >&2
             kubectl --context=$k8s_context delete pod $old_pod --grace-period=0 --force >/dev/null 2>&1
         end
     end
@@ -53,7 +53,7 @@ function _brow_pod_create --argument-names config_name
     # 将TTL转换为秒数
     set -l ttl_seconds (_brow_parse_duration $ttl)
 
-    echo "创建代理Pod..." >&2
+    echo (_brow_i18n_get "creating_proxy_pod") >&2
 
     # 创建临时YAML文件
     set -l tmp_yaml (mktemp)
@@ -99,8 +99,8 @@ spec:
     set -l apply_status $status
 
     if test $apply_status -ne 0
-        echo "错误: 创建Pod失败" >&2
-        echo "kubectl输出: $apply_output" >&2
+        echo (_brow_i18n_get "error_creating_pod") >&2
+        echo (_brow_i18n_format "kubectl_output" $apply_output) >&2
         rm $tmp_yaml
         return 1
     end
@@ -109,31 +109,31 @@ spec:
     rm $tmp_yaml
 
     # 等待Pod就绪
-    echo "等待代理Pod就绪..." >&2
+    echo (_brow_i18n_get "waiting_for_pod") >&2
     set -l wait_output (kubectl --context=$k8s_context wait --for=condition=Ready pod/$pod_name --timeout=60s 2>&1)
     set -l wait_status $status
 
     if test $wait_status -ne 0
-        echo "错误: Pod未能在规定时间内就绪" >&2
-        echo "kubectl输出: $wait_output" >&2
+        echo (_brow_i18n_get "error_pod_not_ready") >&2
+        echo (_brow_i18n_format "kubectl_output" $wait_output) >&2
 
         # 获取Pod状态以便调试
-        echo "获取Pod状态..." >&2
+        echo (_brow_i18n_get "getting_pod_status") >&2
         kubectl --context=$k8s_context describe pod $pod_name >&2
 
         # 尝试删除Pod，但不要因为删除失败而中断
-        echo "清理Pod..." >&2
+        echo (_brow_i18n_get "cleaning_pod") >&2
         kubectl --context=$k8s_context delete pod $pod_name --grace-period=0 --force >/dev/null 2>&1
 
         return 1
     end
 
-    echo "Pod '$pod_name' 已创建并就绪" >&2
-    echo "配置: $config_name" >&2
-    echo "Kubernetes上下文: $k8s_context" >&2
-    echo "IP: $ip" >&2
-    echo "远程端口: $remote_port" >&2
-    echo "TTL: $ttl" >&2
+    echo (_brow_i18n_format "pod_ready" $pod_name) >&2
+    echo (_brow_i18n_format "pod_config" $config_name) >&2
+    echo (_brow_i18n_format "pod_context" $k8s_context) >&2
+    echo (_brow_i18n_format "pod_ip_address" $ip) >&2
+    echo (_brow_i18n_format "pod_remote_port" $remote_port) >&2
+    echo (_brow_i18n_format "pod_ttl" $ttl) >&2
 
     # 返回Pod名称
     echo "$pod_name"
@@ -142,7 +142,7 @@ end
 
 function _brow_pod_list
     # 列出配置中指定的上下文中的Pod
-    echo "正在查询brow Pod..."
+    echo (_brow_i18n_get "querying_brow_pods")
 
     # 获取配置中的上下文
     set -l config_file ~/.config/brow/config.json
@@ -211,14 +211,14 @@ function _brow_pod_list
             set -l pod_json (echo $pods_json | jq -r ".items[] | select(.metadata.name == \"$pod_name\")")
 
             # 提取Pod信息
-            set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
-            set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "未知"')
-            set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "未知"')
-            set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "未知"')
+            set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "unknown"')
+            set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "unknown"')
+            set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "unknown"')
+            set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "unknown"')
             set -l pod_status (echo $pod_json | jq -r '.status.phase')
 
             # 格式化创建时间
-            if test "$created_at" != 未知
+            if test "$created_at" != unknown
                 # 将ISO时间转换为相对时间
                 set -l now (date +%s)
                 set -l created_time (_brow_parse_time "$created_at")
@@ -227,16 +227,16 @@ function _brow_pod_list
                     set -l elapsed (math $now - $created_time)
 
                     if test $elapsed -lt 60
-                        set created_at "$elapsed 秒前"
+                        set created_at (_brow_i18n_format "seconds_ago" $elapsed)
                     else if test $elapsed -lt 3600
                         set -l minutes (math $elapsed / 60)
-                        set created_at "$minutes 分钟前"
+                        set created_at (_brow_i18n_format "minutes_ago" $minutes)
                     else if test $elapsed -lt 86400
                         set -l hours (math $elapsed / 3600)
-                        set created_at "$hours 小时前"
+                        set created_at (_brow_i18n_format "hours_ago" $hours)
                     else
                         set -l days (math $elapsed / 86400)
-                        set created_at "$days 天前"
+                        set created_at (_brow_i18n_format "days_ago" $days)
                     end
                 end
             end
@@ -294,12 +294,13 @@ function _brow_pod_info --argument-names pod_id_or_config
 
         # 如果有多个Pod，列出并询问用户选择
         if test (count $pod_names) -gt 1
-            echo "找到多个配置 '$config_name' 的Pod:"
+            echo (_brow_i18n_format "multiple_pods_found" $config_name)
             for i in (seq (count $pod_names))
                 echo "$i: $pod_names[$i]"
             end
 
-            read -l -P "请选择要查看的Pod编号 [1-"(count $pod_names)"]: " choice
+            set -l action (_brow_i18n_get "select_pod_view")
+            read -l -P (_brow_i18n_format "select_pod_number" $action (count $pod_names)) choice
 
             if test -z "$choice" -o "$choice" -lt 1 -o "$choice" -gt (count $pod_names)
                 echo (_brow_i18n_get "operation_cancelled")
@@ -340,19 +341,19 @@ function _brow_pod_info --argument-names pod_id_or_config
     set -l pod_json (kubectl --context=$k8s_context get pod $pod_id -o json)
 
     # 提取信息
-    set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
-    set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "未知"')
-    set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "未知"')
-    set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "未知"')
+    set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "unknown"')
+    set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "unknown"')
+    set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "unknown"')
+    set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "unknown"')
     set -l pod_status (echo $pod_json | jq -r '.status.phase')
-    set -l node (echo $pod_json | jq -r '.spec.nodeName // "未知"')
-    set -l ip (echo $pod_json | jq -r '.status.podIP // "未知"')
+    set -l node (echo $pod_json | jq -r '.spec.nodeName // "unknown"')
+    set -l ip (echo $pod_json | jq -r '.status.podIP // "unknown"')
     set -l container_status (echo $pod_json | jq -r '.status.containerStatuses[0].ready')
     set -l restart_count (echo $pod_json | jq -r '.status.containerStatuses[0].restartCount')
 
     # 计算剩余时间
-    set -l remaining_time 未知
-    if test "$created_at" != 未知 -a "$ttl" != 未知
+    set -l remaining_time unknown
+    if test "$created_at" != unknown -a "$ttl" != unknown
         set -l now (date +%s)
         set -l created_time (_brow_parse_time "$created_at")
         set -l ttl_seconds (_brow_parse_duration $ttl)
@@ -362,34 +363,34 @@ function _brow_pod_info --argument-names pod_id_or_config
             set -l remaining (math $expiry_time - $now)
 
             if test $remaining -lt 0
-                set remaining_time 已过期
+                set remaining_time (_brow_i18n_get "expired")
             else if test $remaining -lt 60
-                set remaining_time "$remaining 秒"
+                set remaining_time (_brow_i18n_format "seconds_remaining" $remaining)
             else if test $remaining -lt 3600
                 set -l minutes (math $remaining / 60)
-                set remaining_time "$minutes 分钟"
+                set remaining_time (_brow_i18n_format "minutes_remaining" $minutes)
             else if test $remaining -lt 86400
                 set -l hours (math $remaining / 3600)
-                set remaining_time "$hours 小时"
+                set remaining_time (_brow_i18n_format "hours_remaining" $hours)
             else
                 set -l days (math $remaining / 86400)
-                set remaining_time "$days 天"
+                set remaining_time (_brow_i18n_format "days_remaining" $days)
             end
         end
     end
 
     # 显示信息
-    echo "Pod: $pod_id"
-    echo "  配置: $config_name"
-    echo "  服务: $service_name"
-    echo "  创建时间: $created_at"
-    echo "  TTL: $ttl"
-    echo "  剩余时间: $remaining_time"
-    echo "  状态: $pod_status"
-    echo "  节点: $node"
-    echo "  Pod IP: $ip"
-    echo "  容器就绪: $container_status"
-    echo "  重启次数: $restart_count"
+    echo (_brow_i18n_format "pod_info" $pod_id)
+    echo (_brow_i18n_format "pod_config" $config_name)
+    echo (_brow_i18n_format "pod_service" $service_name)
+    echo (_brow_i18n_format "pod_created_at" $created_at)
+    echo (_brow_i18n_format "pod_ttl" $ttl)
+    echo (_brow_i18n_format "remaining_time" $remaining_time)
+    echo (_brow_i18n_format "pod_status" $pod_status)
+    echo (_brow_i18n_format "pod_node" $node)
+    echo (_brow_i18n_format "pod_ip" $ip)
+    echo (_brow_i18n_format "container_ready" $container_status)
+    echo (_brow_i18n_format "restart_count" $restart_count)
 
     # 检查是否有活跃的端口转发
     set -l active_dir ~/.config/brow/active
@@ -397,7 +398,7 @@ function _brow_pod_info --argument-names pod_id_or_config
 
     if test -n "$forward_files"
         echo
-        echo "活跃的端口转发:"
+        echo (_brow_i18n_get "active_port_forwards")
 
         for file in $forward_files
             set -l forward_id (basename $file .json | string replace "forward-$pod_id-" "")
@@ -409,8 +410,8 @@ function _brow_pod_info --argument-names pod_id_or_config
             # 检查进程是否仍在运行
             if kill -0 $pid 2>/dev/null
                 echo "  ID: $forward_id"
-                echo "  本地端口: $local_port"
-                echo "  远程端口: $remote_port"
+                echo (_brow_i18n_format "forward_local_port" $local_port)
+                echo (_brow_i18n_format "forward_remote_port" $remote_port)
                 echo "  PID: $pid"
                 echo
             else
@@ -443,12 +444,13 @@ function _brow_pod_delete --argument-names pod_id_or_config
 
         # 如果有多个Pod，列出并询问用户选择
         if test (count $pod_names) -gt 1
-            echo "找到多个配置 '$config_name' 的Pod:"
+            echo (_brow_i18n_format "multiple_pods_found" $config_name)
             for i in (seq (count $pod_names))
                 echo "$i: $pod_names[$i]"
             end
 
-            read -l -P "请选择要删除的Pod编号 [1-"(count $pod_names)"]: " choice
+            set -l action (_brow_i18n_get "select_pod_delete")
+            read -l -P (_brow_i18n_format "select_pod_number" $action (count $pod_names)) choice
 
             if test -z "$choice" -o "$choice" -lt 1 -o "$choice" -gt (count $pod_names)
                 echo (_brow_i18n_get "operation_cancelled")
@@ -499,7 +501,7 @@ function _brow_pod_delete --argument-names pod_id_or_config
     set -l forward_files (find $active_dir -name "forward-$pod_id-*.json" 2>/dev/null)
 
     if test -n "$forward_files"
-        echo "警告: Pod '$pod_id' 有活跃的端口转发:"
+        echo (_brow_i18n_format "warning_pod_has_forwards" $pod_id)
 
         for file in $forward_files
             set -l forward_id (basename $file .json | string replace "forward-$pod_id-" "")
@@ -507,10 +509,10 @@ function _brow_pod_delete --argument-names pod_id_or_config
             set -l local_port (echo $forward_data | jq -r '.local_port')
             set -l pid (echo $forward_data | jq -r '.pid')
 
-            echo "  ID: $forward_id, 本地端口: $local_port, PID: $pid"
+            echo "  ID: $forward_id, "(_brow_i18n_format "forward_local_port" $local_port)", PID: $pid"
         end
 
-        read -l -P "是否停止所有端口转发并删除Pod? [y/N]: " confirm
+        read -l -P (_brow_i18n_get "confirm_stop_forwards") confirm
 
         if test "$confirm" != y -a "$confirm" != Y
             echo (_brow_i18n_get "operation_cancelled")
@@ -619,7 +621,7 @@ function _brow_pod_cleanup
                     set -l parts (string split ".json" $filename)
                     set -l name_parts (string split "-" $parts[1])
                     set -l forward_id $name_parts[-1]
-                    echo "  清理转发记录: $forward_id"
+                    echo (_brow_i18n_format "cleaning_forward_record" $forward_id)
                     rm $file 2>/dev/null
                 end
             end
@@ -629,9 +631,9 @@ function _brow_pod_cleanup
     end
 
     if test $total_expired_pods -eq 0
-        echo 没有找到需要清理的Pod
+        echo (_brow_i18n_get "no_pods_to_clean")
     else
-        echo "已删除 $total_expired_pods 个Pod"
+        echo (_brow_i18n_format "pods_deleted" $total_expired_pods)
     end
 end
 
