@@ -148,7 +148,10 @@ function brow --description "Kubernetes 连接管理工具"
                         set local_port $argv[2]
                     end
 
-                    _brow_forward_start $pod_id $local_port
+                    set -l forward_id (_brow_forward_start $pod_id $local_port)
+                    if test $status -eq 0
+                        echo "\n转发ID: $forward_id"
+                    end
                 case list
                     _brow_forward_list
                 case stop
@@ -243,7 +246,7 @@ function _brow_connect --argument-names config_name
     set -l k8s_context (echo $config_data | jq -r '.k8s_context')
 
     # 开始端口转发
-    set -l forward_result (_brow_forward_start $pod_id $local_port $k8s_context)
+    set -l forward_id (_brow_forward_start $pod_id $local_port $k8s_context)
     set -l forward_status $status
 
     if test $forward_status -ne 0
@@ -251,6 +254,11 @@ function _brow_connect --argument-names config_name
         # 尝试使用备用端口
         set -l backup_port (math $local_port + 1000)
         echo "尝试端口: $backup_port"
-        _brow_forward_start $pod_id $backup_port $k8s_context
+        set forward_id (_brow_forward_start $pod_id $backup_port $k8s_context)
+        if test $status -eq 0
+            echo "\n转发ID: $forward_id"
+        end
+    else
+        echo "\n转发ID: $forward_id"
     end
 end

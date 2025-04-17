@@ -116,67 +116,82 @@ spec:
 end
 
 function _brow_pod_list
-    # 列出当前所有Pod
+    # 列出所有上下文中的Pod
+    echo "正在查询所有Kubernetes上下文中的Pod..."
 
-    # 检查是否有brow Pod
-    set -l pod_names (kubectl get pods -o=name 2>/dev/null | grep "pod/brow-" || echo "")
-    set -l pod_count (count $pod_names)
+    # 获取所有上下文
+    set -l contexts (kubectl config get-contexts --output=name)
 
-    if test "$pod_count" = 0
-        echo "没有找到活跃的brow Pod"
-        return 0
-    end
+    # 初始化计数器
+    set -l total_pods 0
 
     echo "活跃的brow Pod:"
     echo
 
     # 打印表头
-    printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" Pod名称 配置 服务 创建时间 TTL 状态
-    printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" ------------------------------ --------------- --------------- --------------- --------------- ---------------
+    printf "%-30s %-15s %-15s %-15s %-15s %-15s %-15s\n" Pod名称 配置 服务 创建时间 TTL 状态 上下文
+    printf "%-30s %-15s %-15s %-15s %-15s %-15s %-15s\n" ------------------------------ --------------- --------------- --------------- --------------- --------------- ---------------
 
-    # 获取所有Pod的JSON数据
-    set -l pods_json (kubectl get pods --output=json)
-
-    # 使用jq提取所有brow Pod的信息
-    set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name')
-
-    # 处理每个Pod
-    for pod_name in $pod_names
-        # 获取单个Pod的详细信息
-        set -l pod_json (kubectl get pod $pod_name -o json)
-
-        # 提取Pod信息
-        set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
-        set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "未知"')
-        set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "未知"')
-        set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "未知"')
-        set -l pod_status (echo $pod_json | jq -r '.status.phase')
-
-        # 格式化创建时间
-        if test "$created_at" != 未知
-            # 将ISO时间转换为相对时间
-            set -l now (date +%s)
-            set -l created_time (_brow_parse_time "$created_at")
-
-            if test $created_time -gt 0
-                set -l elapsed (math $now - $created_time)
-
-                if test $elapsed -lt 60
-                    set created_at "$elapsed 秒前"
-                else if test $elapsed -lt 3600
-                    set -l minutes (math $elapsed / 60)
-                    set created_at "$minutes 分钟前"
-                else if test $elapsed -lt 86400
-                    set -l hours (math $elapsed / 3600)
-                    set created_at "$hours 小时前"
-                else
-                    set -l days (math $elapsed / 86400)
-                    set created_at "$days 天前"
-                end
-            end
+    # 遍历所有上下文
+    for ctx in $contexts
+        # 获取当前上下文中的所有Pod
+        set -l pods_json (kubectl --context=$ctx get pods --output=json 2>/dev/null)
+        if test $status -ne 0
+            continue
         end
 
-        printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" $pod_name $config_name $service_name $created_at $ttl $pod_status
+        # 使用jq提取所有brow Pod的信息
+        set -l pod_names (echo $pods_json | jq -r '.items[] | select(.metadata.name | startswith("brow-")) | .metadata.name' 2>/dev/null)
+
+        # 处理每个Pod
+        for pod_name in $pod_names
+            # 增加计数器
+            set total_pods (math $total_pods + 1)
+
+            # 获取单个Pod的详细信息
+            set -l pod_json (kubectl --context=$ctx get pod $pod_name -o json 2>/dev/null)
+
+            # 提取Pod信息
+            set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
+            set -l service_name (echo $pod_json | jq -r '.metadata.labels."brow-service" // "未知"')
+            set -l created_at (echo $pod_json | jq -r '.metadata.annotations."brow.created-at" // "未知"')
+            set -l ttl (echo $pod_json | jq -r '.metadata.annotations."brow.ttl" // "未知"')
+            set -l pod_status (echo $pod_json | jq -r '.status.phase')
+
+            # 格式化创建时间
+            if test "$created_at" != 未知
+                # 将ISO时间转换为相对时间
+                set -l now (date +%s)
+                set -l created_time (_brow_parse_time "$created_at")
+
+                if test $created_time -gt 0
+                    set -l elapsed (math $now - $created_time)
+
+                    if test $elapsed -lt 60
+                        set created_at "$elapsed 秒前"
+                    else if test $elapsed -lt 3600
+                        set -l minutes (math $elapsed / 60)
+                        set created_at "$minutes 分钟前"
+                    else if test $elapsed -lt 86400
+                        set -l hours (math $elapsed / 3600)
+                        set created_at "$hours 小时前"
+                    else
+                        set -l days (math $elapsed / 86400)
+                        set created_at "$days 天前"
+                    end
+                end
+            end
+
+            # 显示简化的上下文名称
+            set -l short_ctx (echo $ctx | string replace -r '.*/' '')
+
+            printf "%-30s %-15s %-15s %-15s %-15s %-15s %-15s\n" $pod_name $config_name $service_name $created_at $ttl $pod_status $short_ctx
+        end
+    end
+
+    # 如果没有找到Pod，显示提示信息
+    if test $total_pods -eq 0
+        echo "没有找到活跃的brow Pod"
     end
 end
 

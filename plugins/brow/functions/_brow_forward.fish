@@ -120,7 +120,7 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
 end
 
 function _brow_forward_list
-    # 列出活跃的转发
+    # 列出所有端口转发，包括活跃和非活跃的
 
     set -l active_dir ~/.config/brow/active
     if not test -d $active_dir
@@ -131,38 +131,44 @@ function _brow_forward_list
     set -l forward_files (find $active_dir -name "forward-*.json" 2>/dev/null)
 
     if test -z "$forward_files"
-        echo 没有活跃的端口转发
+        echo 没有端口转发记录
         return 0
     end
 
-    echo 活跃的端口转发:
+    echo 端口转发列表:
     echo
 
     # 打印表头
-    printf "%-10s %-30s %-15s %-15s %-10s %-15s\n" ID Pod 本地端口 远程端口 PID 配置
-    printf "%-10s %-30s %-15s %-15s %-10s %-15s\n" ---------- ------------------------------ --------------- --------------- ---------- ---------------
+    printf "%-10s %-30s %-15s %-15s %-10s %-15s %-10s\n" ID Pod 本地端口 远程端口 PID 配置 状态
+    printf "%-10s %-30s %-15s %-15s %-10s %-15s %-10s\n" ---------- ------------------------------ --------------- --------------- ---------- --------------- ----------
 
     # 处理每个转发记录
     for file in $forward_files
         set -l filename (basename $file)
         set -l parts (string split "-" $filename)
-        set -l pod_id $parts[2]
-        set -l forward_id (string replace ".json" "" $parts[3])
+        set -l forward_id (string replace ".json" "" $parts[-1])
 
         # 读取转发数据
         set -l forward_data (cat $file)
+        set -l pod_id (echo $forward_data | jq -r '.pod_id // "unknown"')
         set -l local_port (echo $forward_data | jq -r '.local_port')
         set -l remote_port (echo $forward_data | jq -r '.remote_port')
         set -l pid (echo $forward_data | jq -r '.pid')
-        set -l config (echo $forward_data | jq -r '.config')
+        set -l config (echo $forward_data | jq -r '.config // "unknown"')
 
         # 检查进程是否仍在运行
+        set -l status 已停止
+        set -l status_color red
         if kill -0 $pid 2>/dev/null
-            printf "%-10s %-30s %-15s %-15s %-10s %-15s\n" $forward_id $pod_id $local_port $remote_port $pid $config
-        else
-            # 如果进程不存在，删除记录文件
-            rm $file 2>/dev/null
+            set status 活跃
+            set status_color green
         end
+
+        # 使用颜色输出状态
+        printf "%-10s %-30s %-15s %-15s %-10s %-15s " $forward_id $pod_id $local_port $remote_port $pid $config
+        set_color $status_color
+        echo $status
+        set_color normal
     end
 end
 

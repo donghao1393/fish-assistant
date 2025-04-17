@@ -42,7 +42,24 @@ function __brow_forward_ids
     if test -d $active_dir
         for file in $active_dir/forward-*.json
             if test -f $file
-                basename $file .json | string replace "forward-" "" | string split "-" | tail -n 1
+                # 提取转发ID
+                set -l forward_id (basename $file .json | string replace "forward-" "" | string split "-" | tail -n 1)
+
+                # 读取转发数据
+                set -l forward_data (cat $file)
+                set -l pod_id (echo $forward_data | jq -r '.pod_id')
+                set -l local_port (echo $forward_data | jq -r '.local_port')
+                set -l config (echo $forward_data | jq -r '.config')
+                set -l pid (echo $forward_data | jq -r '.pid')
+
+                # 检查进程是否仍在运行
+                set -l status 已停止
+                if kill -0 $pid 2>/dev/null
+                    set status 活跃
+                end
+
+                # 输出格式："ID\t配置 (本地端口) -> Pod [状态]"
+                echo "$forward_id\t$config (端口:$local_port) -> $pod_id [$status]"
             end
         end
     end
@@ -54,31 +71,31 @@ function __brow_k8s_contexts
 end
 
 # 主命令补全
-complete -c brow -f -n "__brow_needs_command" -a "config" -d "管理连接配置"
-complete -c brow -f -n "__brow_needs_command" -a "pod" -d "管理Kubernetes Pod"
-complete -c brow -f -n "__brow_needs_command" -a "forward" -d "管理端口转发"
-complete -c brow -f -n "__brow_needs_command" -a "connect" -d "一步完成创建Pod和转发"
-complete -c brow -f -n "__brow_needs_command" -a "version" -d "显示版本信息"
-complete -c brow -f -n "__brow_needs_command" -a "help" -d "显示帮助信息"
+complete -c brow -f -n __brow_needs_command -a config -d 管理连接配置
+complete -c brow -f -n __brow_needs_command -a pod -d "管理Kubernetes Pod"
+complete -c brow -f -n __brow_needs_command -a forward -d 管理端口转发
+complete -c brow -f -n __brow_needs_command -a connect -d 一步完成创建Pod和转发
+complete -c brow -f -n __brow_needs_command -a version -d 显示版本信息
+complete -c brow -f -n __brow_needs_command -a help -d 显示帮助信息
 
 # config 子命令补全
-complete -c brow -f -n "__brow_using_command config" -a "add" -d "添加新配置"
-complete -c brow -f -n "__brow_using_command config" -a "list" -d "列出所有配置"
-complete -c brow -f -n "__brow_using_command config" -a "show" -d "显示特定配置详情"
-complete -c brow -f -n "__brow_using_command config" -a "edit" -d "编辑配置"
-complete -c brow -f -n "__brow_using_command config" -a "remove" -d "删除配置"
+complete -c brow -f -n "__brow_using_command config" -a add -d 添加新配置
+complete -c brow -f -n "__brow_using_command config" -a list -d 列出所有配置
+complete -c brow -f -n "__brow_using_command config" -a show -d 显示特定配置详情
+complete -c brow -f -n "__brow_using_command config" -a edit -d 编辑配置
+complete -c brow -f -n "__brow_using_command config" -a remove -d 删除配置
 
 # pod 子命令补全
-complete -c brow -f -n "__brow_using_command pod" -a "create" -d "根据配置创建Pod"
-complete -c brow -f -n "__brow_using_command pod" -a "list" -d "列出当前所有Pod"
-complete -c brow -f -n "__brow_using_command pod" -a "info" -d "查看Pod详细信息"
-complete -c brow -f -n "__brow_using_command pod" -a "delete" -d "手动删除Pod"
-complete -c brow -f -n "__brow_using_command pod" -a "cleanup" -d "清理过期的Pod"
+complete -c brow -f -n "__brow_using_command pod" -a create -d 根据配置创建Pod
+complete -c brow -f -n "__brow_using_command pod" -a list -d 列出当前所有Pod
+complete -c brow -f -n "__brow_using_command pod" -a info -d 查看Pod详细信息
+complete -c brow -f -n "__brow_using_command pod" -a delete -d 手动删除Pod
+complete -c brow -f -n "__brow_using_command pod" -a cleanup -d 清理过期的Pod
 
 # forward 子命令补全
-complete -c brow -f -n "__brow_using_command forward" -a "start" -d "开始端口转发"
-complete -c brow -f -n "__brow_using_command forward" -a "list" -d "列出活跃的转发"
-complete -c brow -f -n "__brow_using_command forward" -a "stop" -d "停止特定的转发"
+complete -c brow -f -n "__brow_using_command forward" -a start -d 开始端口转发
+complete -c brow -f -n "__brow_using_command forward" -a list -d 列出活跃的转发
+complete -c brow -f -n "__brow_using_command forward" -a stop -d 停止特定的转发
 
 # 配置名称补全
 complete -c brow -f -n "__brow_using_subcommand config show" -a "(__brow_config_names)"
