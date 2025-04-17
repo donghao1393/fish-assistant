@@ -89,7 +89,9 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     echo "开始端口转发: localhost:$local_port -> $clean_pod_id:$remote_port"
 
     # 启动端口转发进程
-    kubectl --context=$k8s_context port-forward pod/$clean_pod_id $local_port:$remote_port >/dev/null 2>&1 &
+    # 将错误输出重定向到临时文件
+    set -l error_file (mktemp)
+    kubectl --context=$k8s_context port-forward pod/$clean_pod_id $local_port:$remote_port >$error_file 2>&1 &
 
     # 获取进程ID
     set -l pid $last_pid
@@ -100,8 +102,25 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     # 检查进程是否仍在运行
     if not kill -0 $pid 2>/dev/null
         echo "错误: 端口转发启动失败"
+
+        # 显示错误详情
+        if test -f $error_file
+            echo "错误详情:"
+            cat $error_file
+            rm $error_file
+        end
+
+        # 检查端口是否被占用
+        echo "检查端口 $local_port 是否被占用..."
+        if lsof -i :$local_port >/dev/null 2>&1
+            echo "端口 $local_port 已被占用。请尝试其他端口。"
+        end
+
         return 1
     end
+
+    # 删除临时文件
+    rm $error_file 2>/dev/null
 
     # 保存转发信息
     set -l forward_data (jo pod_id=$clean_pod_id local_port=$local_port remote_port=$remote_port pid=$pid config=$config_name)
