@@ -2,6 +2,10 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     # 开始端口转发
     # 用法: _brow_forward_start <pod-id> [local_port] <k8s_context>
 
+    # 处理可能的制表符和描述信息
+    # 如果输入包含制表符，只取第一部分（实际的Pod ID）
+    set -l clean_pod_id (string split "\t" $pod_id)[1]
+
     # 检查上下文参数
     if test -z "$k8s_context"
         # 如果没有指定上下文，尝试从$argv中获取
@@ -20,11 +24,11 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     echo "使用Kubernetes上下文: $k8s_context"
 
     # 检查Pod是否存在
-    set -l pod_check_output (kubectl --context=$k8s_context get pod $pod_id 2>&1)
+    set -l pod_check_output (kubectl --context=$k8s_context get pod $clean_pod_id 2>&1)
     set -l pod_check_status $status
 
     if test $pod_check_status -ne 0
-        echo "错误: 在上下文 '$k8s_context' 中找不到Pod '$pod_id'"
+        echo "错误: 在上下文 '$k8s_context' 中找不到Pod '$clean_pod_id'"
         echo "kubectl输出: $pod_check_output"
 
         # 尝试列出所有可用的上下文
@@ -32,13 +36,13 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
         kubectl config get-contexts --output=name
 
         # 尝试在所有上下文中查找Pod
-        echo "尝试在所有上下文中查找Pod '$pod_id'..."
+        echo "尝试在所有上下文中查找Pod '$clean_pod_id'..."
         for ctx in (kubectl config get-contexts --output=name)
             echo -n "检查上下文 '$ctx'... "
-            if kubectl --context=$ctx get pod $pod_id >/dev/null 2>&1
+            if kubectl --context=$ctx get pod $clean_pod_id >/dev/null 2>&1
                 echo "找到了!"
                 echo "建议使用以下命令:"
-                echo "brow forward start $pod_id $local_port $ctx"
+                echo "brow forward start $clean_pod_id $local_port $ctx"
             else
                 echo 未找到
             end
@@ -48,7 +52,7 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     end
 
     # 获取Pod信息
-    set -l pod_json (kubectl --context=$k8s_context get pod $pod_id -o json)
+    set -l pod_json (kubectl --context=$k8s_context get pod $clean_pod_id -o json)
     set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
     set -l remote_port (echo $pod_json | jq -r '.spec.containers[0].ports[0].containerPort // "5432"')
 
@@ -80,12 +84,12 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     end
 
     # 转发记录文件
-    set -l forward_file "$active_dir/forward-$pod_id-$forward_id.json"
+    set -l forward_file "$active_dir/forward-$clean_pod_id-$forward_id.json"
 
-    echo "开始端口转发: localhost:$local_port -> $pod_id:$remote_port"
+    echo "开始端口转发: localhost:$local_port -> $clean_pod_id:$remote_port"
 
     # 启动端口转发进程
-    kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >/dev/null 2>&1 &
+    kubectl --context=$k8s_context port-forward pod/$clean_pod_id $local_port:$remote_port >/dev/null 2>&1 &
 
     # 获取进程ID
     set -l pid $last_pid
@@ -100,7 +104,7 @@ function _brow_forward_start --argument-names pod_id local_port k8s_context
     end
 
     # 保存转发信息
-    set -l forward_data (jo pod_id=$pod_id local_port=$local_port remote_port=$remote_port pid=$pid config=$config_name)
+    set -l forward_data (jo pod_id=$clean_pod_id local_port=$local_port remote_port=$remote_port pid=$pid config=$config_name)
     echo $forward_data >$forward_file
 
     echo 端口转发已启动

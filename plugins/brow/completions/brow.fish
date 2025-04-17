@@ -61,7 +61,8 @@ function __brow_pod_ids
             set -l short_ctx (echo $ctx | string replace -r '.*/' '')
 
             # 输出格式：Pod名称\t配置 (上下文) [状态]
-            echo "$pod_name\t$config_name ($short_ctx) [$pod_status]"
+            set -l description "$config_name ($short_ctx) [$pod_status]"
+            echo $pod_name\t$description
         end
     end
 end
