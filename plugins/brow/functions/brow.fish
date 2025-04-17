@@ -107,7 +107,7 @@ function brow --description "Kubernetes 连接管理工具"
                     _brow_pod_list
                 case info
                     if test (count $argv) -ne 1
-                        echo "用法: brow pod info <pod-id>"
+                        echo "用法: brow pod info <pod-id|配置名称>"
                         return 1
                     end
                     _brow_pod_info $argv[1]
@@ -245,6 +245,7 @@ function _brow_help
     echo
     echo "高级功能:"
     echo "  brow pod list                     列出当前所有 Pod"
+    echo "  brow pod info <配置名称>         查看指定配置的 Pod 详情"
     echo "  brow pod delete <配置名称>       删除指定配置的 Pod"
     echo "  brow pod cleanup                  清理过期的 Pod"
     echo "  brow forward list                 列出活跃的转发 (同 brow list)"
