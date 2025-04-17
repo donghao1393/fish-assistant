@@ -113,7 +113,7 @@ function brow --description "Kubernetes 连接管理工具"
                     _brow_pod_info $argv[1]
                 case delete
                     if test (count $argv) -ne 1
-                        echo "用法: brow pod delete <pod-id>"
+                        echo "用法: brow pod delete <pod-id|配置名称>"
                         return 1
                     end
                     _brow_pod_delete $argv[1]
@@ -167,10 +167,11 @@ function brow --description "Kubernetes 连接管理工具"
                     _brow_forward_list
                 case stop
                     if test (count $argv) -ne 1
-                        echo "用法: brow forward stop <forward-id>"
+                        echo "用法: brow forward stop <forward-id|配置名称>"
                         return 1
                     end
-                    _brow_forward_stop $argv[1]
+                    # 不自动删除Pod（第二个参数为false）
+                    _brow_forward_stop $argv[1] false
                 case '*'
                     echo "未知的 forward 子命令: $subcmd"
                     echo "可用的子命令: start, list, stop"
@@ -187,7 +188,8 @@ function brow --description "Kubernetes 连接管理工具"
                 echo "用法: brow stop <连接ID|配置名称>"
                 return 1
             end
-            _brow_forward_stop $argv[1]
+            # 自动删除Pod（第二个参数为true）
+            _brow_forward_stop $argv[1] true
 
         case connect
             # 创建连接
@@ -232,7 +234,7 @@ function _brow_help
     echo "主要命令:"
     echo "  brow connect <配置名称> [本地端口]     创建连接到指定配置"
     echo "  brow list                         列出活跃的连接"
-    echo "  brow stop <连接ID|配置名称>        停止连接"
+    echo "  brow stop <连接ID|配置名称>        停止连接并删除Pod"
     echo
     echo "配置管理:"
     echo "  brow config add <名称> <Kubernetes上下文> <IP> [本地端口] [远程端口] [服务名称] [TTL]"
@@ -243,9 +245,10 @@ function _brow_help
     echo
     echo "高级功能:"
     echo "  brow pod list                     列出当前所有 Pod"
+    echo "  brow pod delete <配置名称>       删除指定配置的 Pod"
     echo "  brow pod cleanup                  清理过期的 Pod"
     echo "  brow forward list                 列出活跃的转发 (同 brow list)"
-    echo "  brow forward stop <ID|配置名称>    停止转发 (同 brow stop)"
+    echo "  brow forward stop <ID|配置名称>    停止转发 (不删除Pod)"
     echo "  brow forward start <配置名称> [本地端口]  开始端口转发 (同 brow connect)"
     echo "  brow version                      显示版本信息"
     echo "  brow help                         显示此帮助信息"

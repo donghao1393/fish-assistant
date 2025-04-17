@@ -207,8 +207,11 @@ function _brow_forward_list
     end
 end
 
-function _brow_forward_stop --argument-names forward_id
+function _brow_forward_stop --argument-names forward_id auto_delete_pod
     # 停止特定的转发
+    # 参数:
+    #   forward_id: 转发ID或配置名称
+    #   auto_delete_pod: 是否自动删除Pod（默认为false）
 
     # 处理可能的制表符和描述信息
     # 如果输入包含制表符，只取第一部分（实际的ID）
@@ -238,10 +241,14 @@ function _brow_forward_stop --argument-names forward_id
         end
     end
 
+    # 记录需要删除的Pod
+    set -l pods_to_delete ""
+    set -l config_name ""
+
     for file in $forward_files
         # 读取转发数据
         set -l forward_data (cat $file)
-        set -l config_name (echo $forward_data | jq -r '.config // "unknown"')
+        set config_name (echo $forward_data | jq -r '.config // "unknown"')
         set -l pod_id (echo $forward_data | jq -r '.pod_id // "unknown"')
         set -l local_port (echo $forward_data | jq -r '.local_port')
         set -l remote_port (echo $forward_data | jq -r '.remote_port')
@@ -259,5 +266,49 @@ function _brow_forward_stop --argument-names forward_id
 
         # 删除记录文件
         rm $file
+
+        # 如果需要自动删除Pod，将Pod ID添加到列表中
+        if test "$auto_delete_pod" = true -a "$pod_id" != unknown
+            if not contains $pod_id $pods_to_delete
+                set -a pods_to_delete $pod_id
+            end
+        end
+    end
+
+    # 如果需要自动删除Pod并且有Pod需要删除
+    if test "$auto_delete_pod" = true -a -n "$pods_to_delete"
+        echo "正在删除相关的Pod..."
+        for pod_id in $pods_to_delete
+            # 检查该Pod是否还有其他活跃的转发
+            set -l other_forwards (find $active_dir -name "*-$pod_id-*.json" 2>/dev/null)
+            if test -z "$other_forwards"
+                # 如果没有其他转发，删除Pod
+                echo "删除Pod: $pod_id"
+
+                # 获取Pod所在的上下文
+                set -l k8s_context ""
+                if test -n "$config_name" -a "$config_name" != unknown
+                    set -l config_data (_brow_config_get $config_name)
+                    if test $status -eq 0
+                        set k8s_context (echo $config_data | jq -r '.k8s_context')
+                    end
+                end
+
+                # 如果没有上下文，使用当前上下文
+                if test -z "$k8s_context"
+                    set k8s_context (kubectl config current-context)
+                end
+
+                # 删除Pod
+                kubectl --context=$k8s_context delete pod $pod_id --grace-period=0 --force >/dev/null 2>&1
+                if test $status -eq 0
+                    echo "Pod '$pod_id' 已删除"
+                else
+                    echo "警告: 删除Pod '$pod_id' 失败"
+                end
+            else
+                echo "Pod '$pod_id' 还有其他活跃的转发，不删除"
+            end
+        end
     end
 end

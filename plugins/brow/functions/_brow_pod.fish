@@ -322,13 +322,54 @@ function _brow_pod_info --argument-names pod_id
     end
 end
 
-function _brow_pod_delete --argument-names pod_id
+function _brow_pod_delete --argument-names pod_id_or_config
     # 手动删除Pod
+    # 参数可以是Pod ID或配置名称
 
-    # 检查Pod是否存在
-    if not kubectl get pod $pod_id >/dev/null 2>&1
-        echo "错误: Pod '$pod_id' 不存在"
-        return 1
+    # 先检查是否是配置名称
+    if _brow_config_exists $pod_id_or_config
+        # 如果是配置名称，查找对应的Pod
+        set -l config_name $pod_id_or_config
+        set -l config_data (_brow_config_get $config_name)
+        set -l k8s_context (echo $config_data | jq -r '.k8s_context')
+
+        # 查找该配置的Pod
+        set -l pod_json (kubectl --context=$k8s_context get pods -l app=brow,brow-config=$config_name -o json 2>/dev/null)
+        set -l pod_names (echo $pod_json | jq -r '.items[].metadata.name' 2>/dev/null)
+
+        if test -z "$pod_names"
+            echo "错误: 没有找到配置 '$config_name' 的Pod"
+            return 1
+        end
+
+        # 如果有多个Pod，列出并询问用户选择
+        if test (count $pod_names) -gt 1
+            echo "找到多个配置 '$config_name' 的Pod:"
+            for i in (seq (count $pod_names))
+                echo "$i: $pod_names[$i]"
+            end
+
+            read -l -P "请选择要删除的Pod编号 [1-"(count $pod_names)"]: " choice
+
+            if test -z "$choice" -o "$choice" -lt 1 -o "$choice" -gt (count $pod_names)
+                echo 操作已取消
+                return 1
+            end
+
+            set pod_id $pod_names[$choice]
+        else
+            # 只有一个Pod，直接使用
+            set pod_id $pod_names[1]
+        end
+    else
+        # 如果不是配置名称，当作是Pod ID
+        set pod_id $pod_id_or_config
+
+        # 检查Pod是否存在
+        if not kubectl get pod $pod_id >/dev/null 2>&1
+            echo "错误: Pod '$pod_id' 不存在"
+            return 1
+        end
     end
 
     # 获取Pod信息
