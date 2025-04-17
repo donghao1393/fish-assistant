@@ -16,6 +16,7 @@
   "pid": "PID",
   "forward_status_active": "Active",
   "forward_status_stopped": "Stopped",
+  "no_forwards_found": "No port forwarding records found",
 
   "error_pod_not_found": "Error: Pod '%s' does not exist",
   "error_config_not_found": "Error: Config '%s' does not exist",

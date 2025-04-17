@@ -147,15 +147,15 @@ function _brow_forward_list
     set -l forward_files (find $active_dir -name "forward-*.json" 2>/dev/null)
 
     if test -z "$forward_files"
-        echo 没有端口转发记录
+        echo (_brow_i18n_get "no_forwards_found")
         return 0
     end
 
-    echo 端口转发列表:
+    echo (_brow_i18n_get "forward_list_title")
     echo
 
     # 定义列标题和宽度
-    set -l headers ID 配置 本地端口 远程端口 PID 状态
+    set -l headers (_brow_i18n_get "id") (_brow_i18n_get "config") (_brow_i18n_get "local_port") (_brow_i18n_get "remote_port") (_brow_i18n_get "pid") (_brow_i18n_get "status")
     set -l widths 10 15 15 15 10 15
 
     # 计算标题的可见宽度
@@ -218,7 +218,7 @@ function _brow_forward_list
         end
 
         # 检查进程是否仍在运行
-        set -l forward_status 已停止
+        set -l forward_status (_brow_i18n_get "forward_status_stopped")
         set -l status_color red
 
         # 首先检查进程是否仍在运行
@@ -256,7 +256,7 @@ function _brow_forward_list
         end
 
         # 如果进程和Pod都存在，标记为活跃
-        set forward_status 活跃
+        set forward_status (_brow_i18n_get "forward_status_active")
         set status_color green
 
         # 准备显示数据
@@ -322,11 +322,11 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
             set forward_files (find $active_dir -name "forward-$clean_id-*.json" 2>/dev/null)
 
             if test -z "$forward_files"
-                echo "错误: 配置 '$clean_id' 没有活跃的端口转发"
+                echo (_brow_i18n_format "error_config_no_forwards" $clean_id)
                 return 1
             end
         else
-            echo "错误: 未找到ID为 '$clean_id' 的端口转发"
+            echo (_brow_i18n_format "error_forward_not_found" $clean_id)
             return 1
         end
     end
@@ -346,10 +346,10 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
 
         # 检查进程是否仍在运行
         if kill -0 $pid 2>/dev/null
-            echo "停止端口转发: localhost:$local_port -> $pod_id:$remote_port (PID: $pid)"
+            echo (_brow_i18n_format "forward_stopping" $local_port $pod_id $remote_port $pid)
             # 终止进程
             kill $pid 2>/dev/null
-            echo 端口转发已停止
+            echo (_brow_i18n_get "forward_stopped")
         else
             echo "转发进程已经不存在，清理记录"
         end
@@ -367,13 +367,13 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
 
     # 如果需要自动删除Pod并且有Pod需要删除
     if test "$auto_delete_pod" = true -a (count $pods_to_delete) -gt 0
-        echo "正在删除相关的Pod..."
+        echo (_brow_i18n_get "cleaning_up")
         for pod_id in $pods_to_delete
             # 检查该Pod是否还有其他活跃的转发
             set -l other_forwards (find $active_dir -name "*-$pod_id-*.json" 2>/dev/null)
             if test -z "$other_forwards"
                 # 如果没有其他转发，删除Pod
-                echo "删除Pod: $pod_id"
+                echo (_brow_i18n_format "pod_deleting" $pod_id)
 
                 # 获取Pod所在的上下文
                 set -l k8s_context ""
@@ -392,9 +392,9 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
                 # 删除Pod
                 kubectl --context=$k8s_context delete pod $pod_id --grace-period=0 --force >/dev/null 2>&1
                 if test $status -eq 0
-                    echo "Pod '$pod_id' 已删除"
+                    echo (_brow_i18n_format "pod_deleted" $pod_id)
                 else
-                    echo "警告: 删除Pod '$pod_id' 失败"
+                    echo (_brow_i18n_format "pod_delete_failed" $pod_id)
                 end
             else
                 echo "Pod '$pod_id' 还有其他活跃的转发，不删除"

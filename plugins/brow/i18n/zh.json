@@ -16,6 +16,7 @@
   "pid": "PID",
   "forward_status_active": "活跃",
   "forward_status_stopped": "已停止",
+  "no_forwards_found": "没有端口转发记录",
 
   "error_pod_not_found": "错误: Pod '%s' 不存在",
   "error_config_not_found": "错误: 配置 '%s' 不存在",
