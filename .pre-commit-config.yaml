@@ -15,22 +15,15 @@ repos:
       - id: check-executables-have-shebangs  # 检查可执行文件是否有 shebang
 
   # Fish 脚本检查
-  - repo: https://github.com/codacy/codacy-shellcheck
-    rev: v1.7.1
+  # 使用专门为 Fish 脚本设计的检查器
+  - repo: https://github.com/hugoh/pre-commit-fish.git
+    rev: v1.2
     hooks:
-      - id: shellcheck
-        types: [fish]
-        args: ["--shell=sh"]  # ShellCheck 不直接支持 fish，但可以用 sh 模式检查一些基本问题
+      - id: fish_syntax  # 检查 Fish 脚本语法
+      - id: fish_indent  # 检查并修复 Fish 脚本缩进
 
-  # 自定义 Fish 脚本检查
-  - repo: local
-    hooks:
-      - id: fish-syntax-check
-        name: Fish syntax check
-        entry: bash -c 'for file in "$@"; do fish -n "$file" || exit 1; done' --
-        language: system
-        files: '\.fish$'
-        types: [file]
+  # 注意：我们已经使用 hugoh/pre-commit-fish 提供的 fish_syntax 钩子，
+  # 因此不再需要自定义的 Fish 语法检查钩子。
 
   # Python 代码检查（如果项目中有 Python 代码）
   - repo: https://github.com/astral-sh/ruff-pre-commit
