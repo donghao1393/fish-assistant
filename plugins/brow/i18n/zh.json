@@ -20,6 +20,7 @@
 
   "error_pod_not_found": "错误: Pod '%s' 不存在",
   "error_config_not_found": "错误: 配置 '%s' 不存在",
+  "error_config_exists": "错误: 配置 '%s' 已存在",
   "error_forward_not_found": "错误: 未找到ID为 '%s' 的端口转发",
   "error_config_no_forwards": "错误: 配置 '%s' 没有活跃的端口转发",
 
@@ -47,11 +48,11 @@
   "config_name": "配置名称",
   "k8s_context": "Kubernetes上下文",
   "remote_host": "远程主机",
-  "config_remote_port": "远程端口",
-  "config_local_port": "本地端口",
+  "config_remote_port": "远程端口: %s",
+  "config_local_port": "本地端口: %s",
   "no_configs_found": "没有找到brow配置",
 
-  "config_created": "配置 '%s' 已创建",
+  "config_created": "配置 '%s' 已创建:",
   "config_updated": "配置 '%s' 已更新",
   "config_deleted": "配置 '%s' 已删除",
 

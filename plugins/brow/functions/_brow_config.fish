@@ -63,7 +63,7 @@ function _brow_config_add
     set -l config_file ~/.config/brow/config.json
 
     if _brow_config_exists $config_name
-        echo "错误: 配置 '$config_name' 已存在"
+        echo (_brow_i18n_format "error_config_exists" $config_name)
         echo "请使用 'brow config edit $config_name' 编辑现有配置"
         return 1
     end
@@ -76,11 +76,11 @@ function _brow_config_add
     jq ".[\"$config_name\"] = $config_json" $config_file >$temp_file
     mv $temp_file $config_file
 
-    echo "配置 '$config_name' 已添加:"
-    echo "  Kubernetes上下文: $k8s_context"
-    echo "  IP: $ip"
-    echo "  本地端口: $local_port"
-    echo "  远程端口: $remote_port"
+    echo (_brow_i18n_format "config_created" $config_name)
+    echo (_brow_i18n_format "pod_context" $k8s_context)
+    echo (_brow_i18n_format "pod_ip" $ip)
+    echo (_brow_i18n_format "config_local_port" $local_port)
+    echo (_brow_i18n_format "config_remote_port" $remote_port)
     echo "  服务名称: $service_name"
     echo "  TTL: $ttl"
 end
@@ -89,14 +89,14 @@ function _brow_config_list
     # 列出所有配置
     set -l config_file ~/.config/brow/config.json
 
-    echo "可用的连接配置:"
+    echo (_brow_i18n_get "config_list_title")
     echo
 
     # 检查是否有配置
     set -l config_count (jq -r 'keys | length' $config_file)
 
     if test $config_count -eq 0
-        echo "没有找到配置。使用 'brow config add' 添加新配置。"
+        echo (_brow_i18n_get "no_configs_found")
         return 0
     end
 
@@ -104,7 +104,7 @@ function _brow_config_list
     set -l config_names (jq -r 'keys[]' $config_file)
 
     # 打印表头
-    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" 名称 Kubernetes上下文 IP 本地端口 远程端口 服务名称 TTL
+    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" (_brow_i18n_get "config_name") (_brow_i18n_get "k8s_context") IP (_brow_i18n_get "local_port") (_brow_i18n_get "remote_port") 服务名称 TTL
     printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" -------------------- ------------------------------ --------------- ---------- ---------- --------------- ----------
 
     # 打印每个配置
@@ -124,7 +124,7 @@ function _brow_config_show --argument-names config_name
     # 显示特定配置详情
 
     if not _brow_config_exists $config_name
-        echo "错误: 配置 '$config_name' 不存在"
+        echo (_brow_i18n_format "error_config_not_found" $config_name)
         return 1
     end
 
@@ -138,11 +138,11 @@ function _brow_config_show --argument-names config_name
     set -l service_name (echo $config_data | jq -r '.service_name')
     set -l ttl (echo $config_data | jq -r '.ttl')
 
-    echo "配置: $config_name"
-    echo "  Kubernetes上下文: $k8s_context"
-    echo "  IP: $ip"
-    echo "  本地端口: $local_port"
-    echo "  远程端口: $remote_port"
+    echo (_brow_i18n_format "pod_config" $config_name)
+    echo (_brow_i18n_format "pod_context" $k8s_context)
+    echo (_brow_i18n_format "pod_ip" $ip)
+    echo (_brow_i18n_format "config_local_port" $local_port)
+    echo (_brow_i18n_format "config_remote_port" $remote_port)
     echo "  服务名称: $service_name"
     echo "  TTL: $ttl"
 
@@ -164,7 +164,7 @@ function _brow_config_edit --argument-names config_name
     # 编辑配置
 
     if not _brow_config_exists $config_name
-        echo "错误: 配置 '$config_name' 不存在"
+        echo (_brow_i18n_format "error_config_not_found" $config_name)
         return 1
     end
 
@@ -230,7 +230,7 @@ function _brow_config_edit --argument-names config_name
         jq ".[\"$config_name\"] = $config_json" $config_file >$temp_file
         mv $temp_file $config_file
 
-        echo "配置 '$config_name' 已更新"
+        echo (_brow_i18n_format "config_updated" $config_name)
     else
         echo 配置未变化
     end
@@ -240,7 +240,7 @@ function _brow_config_remove --argument-names config_name
     # 删除配置
 
     if not _brow_config_exists $config_name
-        echo "错误: 配置 '$config_name' 不存在"
+        echo (_brow_i18n_format "error_config_not_found" $config_name)
         return 1
     end
 
@@ -259,7 +259,7 @@ function _brow_config_remove --argument-names config_name
         read -l -P "是否仍要删除配置? [y/N]: " confirm
 
         if test "$confirm" != y -a "$confirm" != Y
-            echo 操作已取消
+            echo (_brow_i18n_get "operation_cancelled")
             return 1
         end
     end
@@ -271,5 +271,5 @@ function _brow_config_remove --argument-names config_name
     jq "del(.[\"$config_name\"])" $config_file >$temp_file
     mv $temp_file $config_file
 
-    echo "配置 '$config_name' 已删除"
+    echo (_brow_i18n_format "config_deleted" $config_name)
 end

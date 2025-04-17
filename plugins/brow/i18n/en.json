@@ -20,6 +20,7 @@
 
   "error_pod_not_found": "Error: Pod '%s' does not exist",
   "error_config_not_found": "Error: Config '%s' does not exist",
+  "error_config_exists": "Error: Config '%s' already exists",
   "error_forward_not_found": "Error: No port forwarding found with ID '%s'",
   "error_config_no_forwards": "Error: Config '%s' has no active port forwarding",
 
@@ -47,11 +48,11 @@
   "config_name": "Config Name",
   "k8s_context": "Kubernetes Context",
   "remote_host": "Remote Host",
-  "config_remote_port": "Remote Port",
-  "config_local_port": "Local Port",
+  "config_remote_port": "Remote port: %s",
+  "config_local_port": "Local port: %s",
   "no_configs_found": "No brow configurations found",
 
-  "config_created": "Config '%s' created",
+  "config_created": "Config '%s' created:",
   "config_updated": "Config '%s' updated",
   "config_deleted": "Config '%s' deleted",
 
