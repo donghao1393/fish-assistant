@@ -67,7 +67,6 @@ function __brow_forward_ids
                 # 读取转发数据
                 set -l forward_data (cat $file)
                 set -l config_name (echo $forward_data | jq -r '.config // "unknown"')
-                set -l pod_id (echo $forward_data | jq -r '.pod_id // "unknown"')
                 set -l local_port (echo $forward_data | jq -r '.local_port')
                 set -l pid (echo $forward_data | jq -r '.pid')
 
@@ -93,8 +92,12 @@ function __brow_forward_ids
         end
     end
 
-    # 添加所有配置名称作为选项
-    __brow_config_names
+    # 添加所有配置名称作为选项，但只添加那些还没有被处理过的
+    for config_name in (__brow_config_names)
+        if not contains $config_name $processed_configs
+            echo $config_name\t"$config_name [配置名称]"
+        end
+    end
 end
 
 function __brow_k8s_contexts
@@ -103,10 +106,12 @@ function __brow_k8s_contexts
 end
 
 # 主命令补全
+complete -c brow -f -n __brow_needs_command -a connect -d 创建连接到指定配置
+complete -c brow -f -n __brow_needs_command -a list -d 列出活跃的连接
+complete -c brow -f -n __brow_needs_command -a stop -d 停止连接
 complete -c brow -f -n __brow_needs_command -a config -d 管理连接配置
 complete -c brow -f -n __brow_needs_command -a pod -d "管理Kubernetes Pod"
-complete -c brow -f -n __brow_needs_command -a forward -d 管理端口转发
-complete -c brow -f -n __brow_needs_command -a connect -d 一步完成创建Pod和转发
+complete -c brow -f -n __brow_needs_command -a forward -d "管理端口转发 (高级功能)"
 complete -c brow -f -n __brow_needs_command -a version -d 显示版本信息
 complete -c brow -f -n __brow_needs_command -a help -d 显示帮助信息
 
@@ -143,6 +148,7 @@ complete -c brow -f -n "__brow_using_subcommand forward start" -a "(__brow_pod_i
 
 # 转发ID补全
 complete -c brow -f -n "__brow_using_subcommand forward stop" -a "(__brow_forward_ids)"
+complete -c brow -f -n "__brow_using_command stop" -a "(__brow_forward_ids)"
 
 # Kubernetes上下文补全
 complete -c brow -f -n "__brow_using_subcommand config add" -a "(__brow_k8s_contexts)"
