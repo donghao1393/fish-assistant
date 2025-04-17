@@ -242,7 +242,7 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
     end
 
     # 记录需要删除的Pod
-    set -l pods_to_delete ""
+    set -l pods_to_delete
     set -l config_name ""
 
     for file in $forward_files
@@ -276,7 +276,7 @@ function _brow_forward_stop --argument-names forward_id auto_delete_pod
     end
 
     # 如果需要自动删除Pod并且有Pod需要删除
-    if test "$auto_delete_pod" = true -a -n "$pods_to_delete"
+    if test "$auto_delete_pod" = true -a (count $pods_to_delete) -gt 0
         echo "正在删除相关的Pod..."
         for pod_id in $pods_to_delete
             # 检查该Pod是否还有其他活跃的转发
