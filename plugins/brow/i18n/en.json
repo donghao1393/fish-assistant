@@ -196,5 +196,13 @@
   "cleaning_invalid_forward": "Cleaning invalid forward record: %s (%s)",
   "forward_pod_not_exist": "Found forward with non-existent Pod: %s, cleaning up...",
   "forward_process_not_exist": "Forward process no longer exists, cleaning record",
-  "pod_has_other_forwards": "Pod '%s' has other active forwards, not deleting"
+  "pod_has_other_forwards": "Pod '%s' has other active forwards, not deleting",
+
+  "edit_k8s_context": "Kubernetes context [%s]: ",
+  "edit_ip": "IP [%s]: ",
+  "edit_local_port": "Local port [%s]: ",
+  "edit_remote_port": "Remote port [%s]: ",
+  "edit_service_name": "Service name [%s]: ",
+  "edit_ttl": "TTL [%s]: ",
+  "confirm_delete_config": "Still want to delete the config? [y/N]: "
 }

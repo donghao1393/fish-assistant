@@ -196,5 +196,13 @@
   "cleaning_invalid_forward": "清理失效的转发记录: %s (%s)",
   "forward_pod_not_exist": "发现转发对应的Pod不存在: %s, 正在清理...",
   "forward_process_not_exist": "转发进程已经不存在，清理记录",
-  "pod_has_other_forwards": "Pod '%s' 还有其他活跃的转发，不删除"
+  "pod_has_other_forwards": "Pod '%s' 还有其他活跃的转发，不删除",
+
+  "edit_k8s_context": "Kubernetes上下文 [%s]: ",
+  "edit_ip": "IP [%s]: ",
+  "edit_local_port": "本地端口 [%s]: ",
+  "edit_remote_port": "远程端口 [%s]: ",
+  "edit_service_name": "服务名称 [%s]: ",
+  "edit_ttl": "TTL [%s]: ",
+  "confirm_delete_config": "是否仍要删除配置? [y/N]: "
 }

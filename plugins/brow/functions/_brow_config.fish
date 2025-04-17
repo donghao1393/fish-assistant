@@ -104,7 +104,7 @@ function _brow_config_list
     set -l config_names (jq -r 'keys[]' $config_file)
 
     # 打印表头
-    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" (_brow_i18n_get "config_name") (_brow_i18n_get "k8s_context") IP (_brow_i18n_get "local_port") (_brow_i18n_get "remote_port") 服务名称 TTL
+    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" (_brow_i18n_get "config_name") (_brow_i18n_get "k8s_context") IP (_brow_i18n_get "local_port") (_brow_i18n_get "remote_port") (_brow_i18n_get "service") TTL
     printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" -------------------- ------------------------------ --------------- ---------- ---------- --------------- ----------
 
     # 打印每个配置
@@ -183,7 +183,7 @@ function _brow_config_edit --argument-names config_name
     echo (_brow_i18n_get "enter_to_keep")
 
     # Kubernetes上下文
-    read -l -P "Kubernetes上下文 [$current_k8s_context]: " new_k8s_context
+    read -l -P (_brow_i18n_format "edit_k8s_context" $current_k8s_context) new_k8s_context
     if test -z "$new_k8s_context"
         set new_k8s_context $current_k8s_context
     end
@@ -195,25 +195,25 @@ function _brow_config_edit --argument-names config_name
     end
 
     # 本地端口
-    read -l -P "本地端口 [$current_local_port]: " new_local_port
+    read -l -P (_brow_i18n_format "edit_local_port" $current_local_port) new_local_port
     if test -z "$new_local_port"
         set new_local_port $current_local_port
     end
 
     # 远程端口
-    read -l -P "远程端口 [$current_remote_port]: " new_remote_port
+    read -l -P (_brow_i18n_format "edit_remote_port" $current_remote_port) new_remote_port
     if test -z "$new_remote_port"
         set new_remote_port $current_remote_port
     end
 
     # 服务名称
-    read -l -P "服务名称 [$current_service_name]: " new_service_name
+    read -l -P (_brow_i18n_format "edit_service_name" $current_service_name) new_service_name
     if test -z "$new_service_name"
         set new_service_name $current_service_name
     end
 
     # TTL
-    read -l -P "TTL [$current_ttl]: " new_ttl
+    read -l -P (_brow_i18n_format "edit_ttl" $current_ttl) new_ttl
     if test -z "$new_ttl"
         set new_ttl $current_ttl
     end
@@ -256,7 +256,7 @@ function _brow_config_remove --argument-names config_name
             echo "  $pod"
         end
 
-        read -l -P "是否仍要删除配置? [y/N]: " confirm
+        read -l -P (_brow_i18n_get "confirm_delete_config") confirm
 
         if test "$confirm" != y -a "$confirm" != Y
             echo (_brow_i18n_get "operation_cancelled")
