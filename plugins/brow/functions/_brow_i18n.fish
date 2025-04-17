@@ -48,7 +48,7 @@ function _brow_i18n_load --argument-names lang
 
     # 检查语言文件是否存在
     set -l script_dir (dirname (status filename))
-    set -l i18n_dir (dirname (dirname $script_dir))/i18n
+    set -l i18n_dir $script_dir/../i18n
     set -l lang_file $i18n_dir/$lang.json
 
     if not test -f $lang_file
@@ -167,7 +167,7 @@ function _brow_i18n_get_available_languages
 
     # 获取i18n目录
     set -l script_dir (dirname (status filename))
-    set -l i18n_dir (dirname (dirname $script_dir))/i18n
+    set -l i18n_dir $script_dir/../i18n
 
     # 列出所有语言文件
     set -l lang_files (find $i18n_dir -name "*.json" 2>/dev/null)
