@@ -16,7 +16,14 @@ function _brow_pod_create --argument-names config_name
 
     # 生成随机字符串作为Pod名称的一部分
     set -l rand_str (date +%s%N | shasum | head -c 8)
-    set -l pod_name "brow-$service_name-$rand_str"
+
+    # 确保服务名称不为空
+    set -l pod_name ""
+    if test -z "$service_name" -o "$service_name" = service
+        set pod_name "brow-proxy-$rand_str"
+    else
+        set pod_name "brow-$service_name-$rand_str"
+    end
 
     # 将TTL转换为秒数
     set -l ttl_seconds (_brow_parse_duration $ttl)
@@ -63,18 +70,36 @@ spec:
     # 使用配置中的k8s context
 
     # 应用YAML创建Pod
-    kubectl --context=$k8s_context apply -f $tmp_yaml >/dev/null
+    set -l apply_output (kubectl --context=$k8s_context apply -f $tmp_yaml 2>&1)
+    set -l apply_status $status
+
+    if test $apply_status -ne 0
+        echo "错误: 创建Pod失败"
+        echo "kubectl输出: $apply_output"
+        rm $tmp_yaml
+        return 1
+    end
 
     # 删除临时YAML文件
     rm $tmp_yaml
 
     # 等待Pod就绪
     echo "等待代理Pod就绪..."
-    kubectl --context=$k8s_context wait --for=condition=Ready pod/$pod_name --timeout=60s >/dev/null
+    set -l wait_output (kubectl --context=$k8s_context wait --for=condition=Ready pod/$pod_name --timeout=60s 2>&1)
+    set -l wait_status $status
 
-    if test $status -ne 0
+    if test $wait_status -ne 0
         echo "错误: Pod未能在规定时间内就绪"
-        kubectl --context=$k8s_context delete pod $pod_name >/dev/null 2>&1
+        echo "kubectl输出: $wait_output"
+
+        # 获取Pod状态以便调试
+        echo "获取Pod状态..."
+        kubectl --context=$k8s_context describe pod $pod_name
+
+        # 尝试删除Pod，但不要因为删除失败而中断
+        echo "清理Pod..."
+        kubectl --context=$k8s_context delete pod $pod_name --grace-period=0 --force >/dev/null 2>&1
+
         return 1
     end
 
@@ -97,7 +122,7 @@ function _brow_pod_list
     set -l pod_names (kubectl get pods -o=name 2>/dev/null | grep "pod/brow-" || echo "")
     set -l pod_count (count $pod_names)
 
-    if test "$pod_count" = "0"
+    if test "$pod_count" = 0
         echo "没有找到活跃的brow Pod"
         return 0
     end
@@ -106,8 +131,8 @@ function _brow_pod_list
     echo
 
     # 打印表头
-    printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" "Pod名称" "配置" "服务" "创建时间" "TTL" "状态"
-    printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" "------------------------------" "---------------" "---------------" "---------------" "---------------" "---------------"
+    printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" Pod名称 配置 服务 创建时间 TTL 状态
+    printf "%-30s %-15s %-15s %-15s %-15s %-15s\n" ------------------------------ --------------- --------------- --------------- --------------- ---------------
 
     # 获取所有Pod的JSON数据
     set -l pods_json (kubectl get pods --output=json)
@@ -128,7 +153,7 @@ function _brow_pod_list
         set -l pod_status (echo $pod_json | jq -r '.status.phase')
 
         # 格式化创建时间
-        if test "$created_at" != "未知"
+        if test "$created_at" != 未知
             # 将ISO时间转换为相对时间
             set -l now (date +%s)
             set -l created_time (_brow_parse_time "$created_at")
@@ -179,8 +204,8 @@ function _brow_pod_info --argument-names pod_id
     set -l restart_count (echo $pod_json | jq -r '.status.containerStatuses[0].restartCount')
 
     # 计算剩余时间
-    set -l remaining_time "未知"
-    if test "$created_at" != "未知" -a "$ttl" != "未知"
+    set -l remaining_time 未知
+    if test "$created_at" != 未知 -a "$ttl" != 未知
         set -l now (date +%s)
         set -l created_time (_brow_parse_time "$created_at")
         set -l ttl_seconds (_brow_parse_duration $ttl)
@@ -190,7 +215,7 @@ function _brow_pod_info --argument-names pod_id
             set -l remaining (math $expiry_time - $now)
 
             if test $remaining -lt 0
-                set remaining_time "已过期"
+                set remaining_time 已过期
             else if test $remaining -lt 60
                 set remaining_time "$remaining 秒"
             else if test $remaining -lt 3600
@@ -280,8 +305,8 @@ function _brow_pod_delete --argument-names pod_id
 
         read -l -P "是否停止所有端口转发并删除Pod? [y/N]: " confirm
 
-        if test "$confirm" != "y" -a "$confirm" != "Y"
-            echo "操作已取消"
+        if test "$confirm" != y -a "$confirm" != Y
+            echo 操作已取消
             return 1
         end
 
@@ -294,7 +319,7 @@ function _brow_pod_delete --argument-names pod_id
 
     # 获取Pod所在的上下文
     set -l k8s_context "" # 默认为空
-    if test "$config_name" != "未知"
+    if test "$config_name" != 未知
         set -l config_data (_brow_config_get $config_name)
         if test $status -eq 0
             set k8s_context (echo $config_data | jq -r '.k8s_context')
@@ -350,7 +375,7 @@ function _brow_pod_cleanup
         set -l should_cleanup false
 
         # 情况1: Pod处于错误或失败状态
-        if test "$pod_status" = "Failed" -o "$pod_status" = "Error"
+        if test "$pod_status" = Failed -o "$pod_status" = Error
             set should_cleanup true
         end
 
@@ -369,10 +394,10 @@ function _brow_pod_cleanup
         end
 
         # 如果需要清理，删除Pod
-        if test "$should_cleanup" = "true"
+        if test "$should_cleanup" = true
             # 获取上下文
             set -l k8s_context "" # 默认为空
-            if test "$config_name" != "未知"
+            if test "$config_name" != 未知
                 set -l config_data (_brow_config_get $config_name 2>/dev/null)
                 if test $status -eq 0
                     set k8s_context (echo $config_data | jq -r '.k8s_context')
@@ -391,7 +416,7 @@ function _brow_pod_cleanup
     end
 
     if test $expired_pods -eq 0
-        echo "没有找到需要清理的Pod"
+        echo 没有找到需要清理的Pod
     else
         echo "已删除 $expired_pods 个Pod"
     end

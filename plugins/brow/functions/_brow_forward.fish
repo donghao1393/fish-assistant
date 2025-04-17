@@ -1,21 +1,60 @@
-function _brow_forward_start --argument-names pod_id local_port
+function _brow_forward_start --argument-names pod_id local_port k8s_context
     # 开始端口转发
-    # 用法: _brow_forward_start <pod-id> [local_port]
+    # 用法: _brow_forward_start <pod-id> [local_port] <k8s_context>
+
+    # 检查上下文参数
+    if test -z "$k8s_context"
+        # 如果没有指定上下文，尝试从$argv中获取
+        if test (count $argv) -ge 3
+            set k8s_context $argv[3]
+        end
+    end
+
+    # 如果没有指定上下文，返回错误
+    if test -z "$k8s_context"
+        echo "错误: 未指定Kubernetes上下文"
+        echo "请使用 'brow forward start <pod-id> <local_port> <k8s_context>' 命令指定上下文"
+        return 1
+    end
+
+    echo "使用Kubernetes上下文: $k8s_context"
 
     # 检查Pod是否存在
-    if not kubectl get pod $pod_id >/dev/null 2>&1
-        echo "错误: Pod '$pod_id' 不存在"
+    set -l pod_check_output (kubectl --context=$k8s_context get pod $pod_id 2>&1)
+    set -l pod_check_status $status
+
+    if test $pod_check_status -ne 0
+        echo "错误: 在上下文 '$k8s_context' 中找不到Pod '$pod_id'"
+        echo "kubectl输出: $pod_check_output"
+
+        # 尝试列出所有可用的上下文
+        echo "可用的Kubernetes上下文:"
+        kubectl config get-contexts --output=name
+
+        # 尝试在所有上下文中查找Pod
+        echo "尝试在所有上下文中查找Pod '$pod_id'..."
+        for ctx in (kubectl config get-contexts --output=name)
+            echo -n "检查上下文 '$ctx'... "
+            if kubectl --context=$ctx get pod $pod_id >/dev/null 2>&1
+                echo "找到了!"
+                echo "建议使用以下命令:"
+                echo "brow forward start $pod_id $local_port $ctx"
+            else
+                echo 未找到
+            end
+        end
+
         return 1
     end
 
     # 获取Pod信息
-    set -l pod_json (kubectl get pod $pod_id -o json)
+    set -l pod_json (kubectl --context=$k8s_context get pod $pod_id -o json)
     set -l config_name (echo $pod_json | jq -r '.metadata.annotations."brow.config" // "未知"')
     set -l remote_port (echo $pod_json | jq -r '.spec.containers[0].ports[0].containerPort // "5432"')
 
     # 如果未指定本地端口，尝试从配置获取
     if test -z "$local_port"
-        if test "$config_name" != "未知"
+        if test "$config_name" != 未知
             set -l config_data (_brow_config_get $config_name)
             if test $status -eq 0
                 set local_port (echo $config_data | jq -r '.local_port')
@@ -29,19 +68,7 @@ function _brow_forward_start --argument-names pod_id local_port
         end
     end
 
-    # 获取上下文
-    set -l k8s_context "" # 默认为空
-    if test "$config_name" != "未知"
-        set -l config_data (_brow_config_get $config_name)
-        if test $status -eq 0
-            set k8s_context (echo $config_data | jq -r '.k8s_context')
-        end
-    end
-
-    # 如果没有上下文，使用当前上下文
-    if test -z "$k8s_context"
-        set k8s_context (kubectl config current-context)
-    end
+    # 我们已经在函数开始时设置了k8s_context，不需要再次设置
 
     # 生成唯一的转发ID
     set -l forward_id (date +%s%N | shasum | head -c 8)
@@ -74,9 +101,9 @@ function _brow_forward_start --argument-names pod_id local_port
 
     # 保存转发信息
     set -l forward_data (jo pod_id=$pod_id local_port=$local_port remote_port=$remote_port pid=$pid config=$config_name)
-    echo $forward_data > $forward_file
+    echo $forward_data >$forward_file
 
-    echo "端口转发已启动"
+    echo 端口转发已启动
     echo "  ID: $forward_id"
     echo "  本地端口: $local_port"
     echo "  远程端口: $remote_port"
@@ -104,16 +131,16 @@ function _brow_forward_list
     set -l forward_files (find $active_dir -name "forward-*.json" 2>/dev/null)
 
     if test -z "$forward_files"
-        echo "没有活跃的端口转发"
+        echo 没有活跃的端口转发
         return 0
     end
 
-    echo "活跃的端口转发:"
+    echo 活跃的端口转发:
     echo
 
     # 打印表头
-    printf "%-10s %-30s %-15s %-15s %-10s %-15s\n" "ID" "Pod" "本地端口" "远程端口" "PID" "配置"
-    printf "%-10s %-30s %-15s %-15s %-10s %-15s\n" "----------" "------------------------------" "---------------" "---------------" "----------" "---------------"
+    printf "%-10s %-30s %-15s %-15s %-10s %-15s\n" ID Pod 本地端口 远程端口 PID 配置
+    printf "%-10s %-30s %-15s %-15s %-10s %-15s\n" ---------- ------------------------------ --------------- --------------- ---------- ---------------
 
     # 处理每个转发记录
     for file in $forward_files
@@ -151,7 +178,7 @@ function _brow_forward_stop --argument-names forward_id
     set -l forward_files (find $active_dir -name "*-$forward_id.json" 2>/dev/null)
 
     if test -z "$forward_files"
-        echo "错误: 未找到ID为 '$forward_id' 的端口转发"
+        echo "错误: 未找到ID为 $forward_id 的端口转发"
         return 1
     end
 
@@ -171,6 +198,6 @@ function _brow_forward_stop --argument-names forward_id
         # 删除记录文件
         rm $file
 
-        echo "端口转发已停止"
+        echo 端口转发已停止
     end
 end

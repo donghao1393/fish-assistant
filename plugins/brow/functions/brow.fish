@@ -36,7 +36,7 @@ function brow --description "Kubernetes 连接管理工具"
 
     # 如果配置文件不存在，创建一个空的JSON对象
     if not test -f $config_file
-        echo "{}" > $config_file
+        echo "{}" >$config_file
     end
 
     # 子命令解析
@@ -232,10 +232,25 @@ function _brow_connect --argument-names config_name
     # 获取最后一行作为Pod名称
     set -l pod_id (echo $pod_output[-1])
 
-    # 获取配置中的本地端口
+    echo "获取到Pod名称: $pod_id"
+
+    # 等待一会儿，确保Pod已经被Kubernetes API服务器完全识别
+    sleep 2
+
+    # 获取配置中的本地端口和上下文
     set -l config_data (_brow_config_get $config_name)
     set -l local_port (echo $config_data | jq -r '.local_port')
+    set -l k8s_context (echo $config_data | jq -r '.k8s_context')
 
     # 开始端口转发
-    _brow_forward_start $pod_id $local_port
+    set -l forward_result (_brow_forward_start $pod_id $local_port $k8s_context)
+    set -l forward_status $status
+
+    if test $forward_status -ne 0
+        echo "尝试使用备用端口..."
+        # 尝试使用备用端口
+        set -l backup_port (math $local_port + 1000)
+        echo "尝试端口: $backup_port"
+        _brow_forward_start $pod_id $backup_port $k8s_context
+    end
 end
