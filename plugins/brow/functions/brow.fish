@@ -181,27 +181,27 @@ function brow --description "Kubernetes 连接管理工具"
                         else
                             # 如果Pod不存在，尝试从配置名称中查找
                             # 检查是否有与输入匹配的配置
-                            set -l configs (_brow_config_list)
-                            for config in $configs
-                                if test "$config" = "$pod_id"
-                                    # 如果输入的是配置名称，使用该配置
-                                    set -l config_data (_brow_config_get $config)
+                            if _brow_config_exists $pod_id
+                                # 如果输入的是配置名称，使用该配置
+                                set -l config_data (_brow_config_get $pod_id)
+                                if test $status -eq 0
+                                    set k8s_context (echo $config_data | jq -r '.k8s_context')
+                                    # 如果没有指定本地端口，使用配置中的端口
+                                    if test -z "$local_port"
+                                        set local_port (echo $config_data | jq -r '.local_port')
+                                    end
+                                    # 创建Pod
+                                    echo "使用配置 '$pod_id' 创建Pod..."
+                                    set -l pod_output (_brow_pod_create $pod_id)
                                     if test $status -eq 0
-                                        set k8s_context (echo $config_data | jq -r '.k8s_context')
-                                        # 如果没有指定本地端口，使用配置中的端口
-                                        if test -z "$local_port"
-                                            set local_port (echo $config_data | jq -r '.local_port')
-                                        end
-                                        # 创建Pod
-                                        set -l pod_output (_brow_pod_create $config)
-                                        if test $status -eq 0
-                                            # 获取最后一行作为Pod名称
-                                            set pod_id (echo $pod_output[-1])
-                                            echo "创建Pod: $pod_id"
-                                            # 等待Pod就绪
-                                            sleep 2
-                                        end
-                                        break
+                                        # 获取最后一行作为Pod名称
+                                        set pod_id (echo $pod_output[-1])
+                                        echo "创建Pod成功: $pod_id"
+                                        # 等待Pod就绪
+                                        sleep 2
+                                    else
+                                        echo "错误: 创建Pod失败"
+                                        return 1
                                     end
                                 end
                             end
