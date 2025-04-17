@@ -39,6 +39,8 @@ function __brow_pod_ids
 end
 
 function __brow_forward_ids
+    # 这个函数现在只返回配置名称，而不返回转发ID
+    # 这更符合我们的抽象层设计，用户只需要知道配置名称
     set -l active_dir ~/.config/brow/active
     if test -d $active_dir
         # 记录已经处理过的配置
@@ -54,9 +56,6 @@ function __brow_forward_ids
 
                 # 分割成数组，例如 [forward, legacy, prod, 0df206e8]
                 set -l parts (string split "-" $name_without_ext)
-
-                # 获取最后一个元素作为forward_id
-                set -l forward_id $parts[-1]
 
                 # 移除第一个元素(forward)和最后一个元素(forward_id)
                 set -l config_parts $parts[2..-2]
@@ -77,14 +76,10 @@ function __brow_forward_ids
 
                 # 检查进程是否仍在运行
                 if kill -0 $pid 2>/dev/null
-                    # 输出转发ID作为选项
-                    set -l description "$config_name (端口:$local_port) [转发ID]"
-                    echo $forward_id\t$description
-
-                    # 如果这个配置还没有被处理过，也输出配置名称作为选项
+                    # 如果这个配置还没有被处理过，输出配置名称作为选项
                     if not contains $config_name $processed_configs
                         set -a processed_configs $config_name
-                        set -l config_description "$config_name (端口:$local_port) [配置名称]"
+                        set -l config_description "$config_name (端口:$local_port) [活跃连接]"
                         echo $config_name\t$config_description
                     end
                 end
