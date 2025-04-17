@@ -67,6 +67,7 @@
   "config_created": "配置 '%s' 已创建:",
   "config_updated": "配置 '%s' 已更新",
   "config_deleted": "配置 '%s' 已删除",
+  "config_unchanged": "配置未变化",
 
   "language_set": "语言已设置为: %s",
   "language_current": "当前语言: %s",
@@ -104,5 +105,37 @@
   "help_example_config_add": "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m",
   "help_example_connect": "  brow connect mysql-dev            # 创建连接",
   "help_example_list": "  brow list                         # 查看连接",
-  "help_example_stop": "  brow stop mysql-dev              # 停止连接"
+  "help_example_stop": "  brow stop mysql-dev              # 停止连接",
+
+  "usage_config_add": "用法: brow config add <名称> <上下文> <IP> [本地端口=5433] [远程端口=5432] [服务名称=service] [TTL=30m]",
+  "use_config_edit": "请使用 'brow config edit %s' 编辑现有配置",
+  "service_name": "服务名称: %s",
+  "active_pods": "活跃的Pod:",
+  "editing_config": "编辑配置: %s",
+  "enter_to_keep": "按Enter保留当前值，或输入新值",
+  "warning_config_has_pods": "警告: 配置 '%s' 有活跃的Pod:",
+
+  "error_config_cmd": "错误: config 命令需要指定操作类型 (add/list/show/edit/remove)",
+  "usage_config_show": "用法: brow config show <配置名称>",
+  "usage_config_edit": "用法: brow config edit <配置名称>",
+  "usage_config_remove": "用法: brow config remove <配置名称>",
+  "unknown_config_subcmd": "未知的 config 子命令: %s",
+  "available_config_subcmds": "可用的子命令: add, list, show, edit, remove",
+
+  "error_pod_cmd": "错误: pod 命令需要指定操作类型 (create/list/info/delete/cleanup)",
+  "usage_pod_create": "用法: brow pod create <配置名称>",
+  "usage_pod_info": "用法: brow pod info <pod-id|配置名称>",
+  "usage_pod_delete": "用法: brow pod delete <pod-id|配置名称>",
+  "unknown_pod_subcmd": "未知的 pod 子命令: %s",
+  "available_pod_subcmds": "可用的子命令: create, list, info, delete, cleanup",
+
+  "error_forward_cmd": "错误: forward 命令需要指定操作类型 (start/list/stop)",
+  "usage_forward_start": "用法: brow forward start <配置名称> [local_port]",
+  "usage_forward_stop": "用法: brow forward stop <forward-id|配置名称>",
+  "unknown_forward_subcmd": "未知的 forward 子命令: %s",
+  "available_forward_subcmds": "可用的子命令: start, list, stop",
+
+  "usage_stop": "用法: brow stop <连接ID|配置名称>",
+  "usage_connect": "用法: brow connect <配置名称> [本地端口]",
+  "unknown_command": "未知命令: %s"
 }

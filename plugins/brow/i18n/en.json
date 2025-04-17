@@ -67,6 +67,7 @@
   "config_created": "Config '%s' created:",
   "config_updated": "Config '%s' updated",
   "config_deleted": "Config '%s' deleted",
+  "config_unchanged": "Configuration unchanged",
 
   "language_set": "Language set to: %s",
   "language_current": "Current language: %s",
@@ -104,5 +105,37 @@
   "help_example_config_add": "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m",
   "help_example_connect": "  brow connect mysql-dev                  # Create connection",
   "help_example_list": "  brow list                               # View connections",
-  "help_example_stop": "  brow stop mysql-dev                    # Stop connection"
+  "help_example_stop": "  brow stop mysql-dev                    # Stop connection",
+
+  "usage_config_add": "Usage: brow config add <name> <context> <IP> [local_port=5433] [remote_port=5432] [service_name=service] [TTL=30m]",
+  "use_config_edit": "Please use 'brow config edit %s' to edit existing configuration",
+  "service_name": "Service name: %s",
+  "active_pods": "Active Pods:",
+  "editing_config": "Editing config: %s",
+  "enter_to_keep": "Press Enter to keep current value, or enter new value",
+  "warning_config_has_pods": "Warning: Config '%s' has active Pods:",
+
+  "error_config_cmd": "Error: config command requires an operation type (add/list/show/edit/remove)",
+  "usage_config_show": "Usage: brow config show <config_name>",
+  "usage_config_edit": "Usage: brow config edit <config_name>",
+  "usage_config_remove": "Usage: brow config remove <config_name>",
+  "unknown_config_subcmd": "Unknown config subcommand: %s",
+  "available_config_subcmds": "Available subcommands: add, list, show, edit, remove",
+
+  "error_pod_cmd": "Error: pod command requires an operation type (create/list/info/delete/cleanup)",
+  "usage_pod_create": "Usage: brow pod create <config_name>",
+  "usage_pod_info": "Usage: brow pod info <pod-id|config_name>",
+  "usage_pod_delete": "Usage: brow pod delete <pod-id|config_name>",
+  "unknown_pod_subcmd": "Unknown pod subcommand: %s",
+  "available_pod_subcmds": "Available subcommands: create, list, info, delete, cleanup",
+
+  "error_forward_cmd": "Error: forward command requires an operation type (start/list/stop)",
+  "usage_forward_start": "Usage: brow forward start <config_name> [local_port]",
+  "usage_forward_stop": "Usage: brow forward stop <forward-id|config_name>",
+  "unknown_forward_subcmd": "Unknown forward subcommand: %s",
+  "available_forward_subcmds": "Available subcommands: start, list, stop",
+
+  "usage_stop": "Usage: brow stop <connection_id|config_name>",
+  "usage_connect": "Usage: brow connect <config_name> [local_port]",
+  "unknown_command": "Unknown command: %s"
 }

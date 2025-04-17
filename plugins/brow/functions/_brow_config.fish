@@ -27,7 +27,7 @@ function _brow_config_add
     # 用法: _brow_config_add <名称> <上下文> <IP> [本地端口] [远程端口] [服务名称] [TTL]
 
     if test (count $argv) -lt 3
-        echo "用法: brow config add <名称> <上下文> <IP> [本地端口=5433] [远程端口=5432] [服务名称=service] [TTL=30m]"
+        echo (_brow_i18n_get "usage_config_add")
         return 1
     end
 
@@ -64,7 +64,7 @@ function _brow_config_add
 
     if _brow_config_exists $config_name
         echo (_brow_i18n_format "error_config_exists" $config_name)
-        echo "请使用 'brow config edit $config_name' 编辑现有配置"
+        echo (_brow_i18n_format "use_config_edit" $config_name)
         return 1
     end
 
@@ -81,7 +81,7 @@ function _brow_config_add
     echo (_brow_i18n_format "pod_ip" $ip)
     echo (_brow_i18n_format "config_local_port" $local_port)
     echo (_brow_i18n_format "config_remote_port" $remote_port)
-    echo "  服务名称: $service_name"
+    echo (_brow_i18n_format "service_name" $service_name)
     echo "  TTL: $ttl"
 end
 
@@ -143,7 +143,7 @@ function _brow_config_show --argument-names config_name
     echo (_brow_i18n_format "pod_ip" $ip)
     echo (_brow_i18n_format "config_local_port" $local_port)
     echo (_brow_i18n_format "config_remote_port" $remote_port)
-    echo "  服务名称: $service_name"
+    echo (_brow_i18n_format "service_name" $service_name)
     echo "  TTL: $ttl"
 
     # 检查是否有活跃的Pod
@@ -153,7 +153,7 @@ function _brow_config_show --argument-names config_name
 
     if test -n "$active_pods"
         echo
-        echo "活跃的Pod:"
+        echo (_brow_i18n_get "active_pods")
         for pod in $active_pods
             echo "  $pod"
         end
@@ -179,8 +179,8 @@ function _brow_config_edit --argument-names config_name
     set -l current_ttl (jq -r ".[\"$config_name\"].ttl" $config_file)
 
     # 显示当前配置
-    echo "编辑配置: $config_name"
-    echo "按Enter保留当前值，或输入新值"
+    echo (_brow_i18n_format "editing_config" $config_name)
+    echo (_brow_i18n_get "enter_to_keep")
 
     # Kubernetes上下文
     read -l -P "Kubernetes上下文 [$current_k8s_context]: " new_k8s_context
@@ -232,7 +232,7 @@ function _brow_config_edit --argument-names config_name
 
         echo (_brow_i18n_format "config_updated" $config_name)
     else
-        echo 配置未变化
+        echo (_brow_i18n_get "config_unchanged")
     end
 end
 
@@ -251,7 +251,7 @@ function _brow_config_remove --argument-names config_name
     set -l active_pods (kubectl --context=$k8s_context get pods --selector=app=brow-$config_name -o json 2>/dev/null | jq -r '.items[].metadata.name')
 
     if test -n "$active_pods"
-        echo "警告: 配置 '$config_name' 有活跃的Pod:"
+        echo (_brow_i18n_format "warning_config_has_pods" $config_name)
         for pod in $active_pods
             echo "  $pod"
         end
