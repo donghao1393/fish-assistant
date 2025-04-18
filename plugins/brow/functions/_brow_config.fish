@@ -1,3 +1,20 @@
+# 辅助函数：基于可见宽度的格式化
+function _pad_to_width --argument-names str width fill
+    # 默认填充字符为空格
+    if test -z "$fill"
+        set fill " "
+    end
+
+    # 计算显示宽度
+    set -l str_width (string length --visible -- "$str")
+    set -l padding (math "$width - $str_width")
+
+    echo -n "$str"
+    if test $padding -gt 0
+        echo -n (string repeat -n $padding "$fill")
+    end
+end
+
 function _brow_config_exists --argument-names config_name
     # 检查配置是否存在
     set -l config_file ~/.config/brow/config.json
