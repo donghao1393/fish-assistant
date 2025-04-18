@@ -12,7 +12,7 @@ if status is-interactive
     source $script_dir/_brow_i18n.fish
 end
 
-function brow --description "Kubernetes 连接管理工具"
+function brow --description "Kubernetes Connection Manager"
     set -l brow_version "0.1.0"
 
     # 检查依赖
@@ -151,8 +151,8 @@ function brow --description "Kubernetes 连接管理工具"
 
                     # 检查配置是否存在
                     if not _brow_config_exists $config_name
-                        echo "错误: 配置 '$config_name' 不存在"
-                        echo "请使用 'brow config list' 查看可用的配置"
+                        echo (_brow_i18n_format "error_config_not_found" $config_name)
+                        echo (_brow_i18n_get "use_config_list")
                         return 1
                     end
 
