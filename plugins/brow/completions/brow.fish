@@ -1,3 +1,90 @@
+# 加载i18n函数
+if not functions -q _brow_i18n_get
+    # 尝试从相对路径加载
+    set -l script_dir (dirname (status filename))
+    set -l i18n_file $script_dir/../functions/_brow_i18n.fish
+    if test -f $i18n_file
+        source $i18n_file
+    else
+        # 尝试从绝对路径加载
+        set -l i18n_file ~/.config/fish/functions/_brow_i18n.fish
+        if test -f $i18n_file
+            source $i18n_file
+        end
+    end
+end
+
+# 如果i18n函数仍然不可用，定义一个简单的替代函数
+if not functions -q _brow_i18n_get
+    function _brow_i18n_get
+        # 定义一些基本的翻译
+        switch $argv[1]
+            case completion_cmd_connect
+                echo "Create connection to specified config"
+            case completion_cmd_list
+                echo "List active connections"
+            case completion_cmd_stop
+                echo "Stop connection"
+            case completion_cmd_config
+                echo "Manage connection configurations"
+            case completion_cmd_pod
+                echo "Manage Kubernetes Pods"
+            case completion_cmd_forward
+                echo "Manage port forwarding (advanced)"
+            case completion_cmd_health_check
+                echo "Check and fix inconsistent states"
+            case completion_cmd_version
+                echo "Show version information"
+            case completion_cmd_help
+                echo "Show help information"
+            case completion_cmd_language
+                echo "Manage language settings"
+            case completion_subcmd_config_add
+                echo "Add new configuration"
+            case completion_subcmd_config_list
+                echo "List all configurations"
+            case completion_subcmd_config_show
+                echo "Show specific configuration details"
+            case completion_subcmd_config_edit
+                echo "Edit configuration"
+            case completion_subcmd_config_remove
+                echo "Delete configuration"
+            case completion_subcmd_pod_create
+                echo "Create Pod from configuration"
+            case completion_subcmd_pod_list
+                echo "List all current Pods"
+            case completion_subcmd_pod_info
+                echo "View Pod details"
+            case completion_subcmd_pod_delete
+                echo "Manually delete Pod"
+            case completion_subcmd_pod_cleanup
+                echo "Clean up expired Pods"
+            case completion_subcmd_forward_start
+                echo "Start port forwarding"
+            case completion_subcmd_forward_list
+                echo "List active forwards"
+            case completion_subcmd_forward_stop
+                echo "Stop specific forward"
+            case completion_subcmd_language_set
+                echo "Set language"
+            case completion_config
+                echo config
+            case forward_status_active
+                echo active
+            case '*'
+                echo $argv[1]
+        end
+    end
+end
+
+# 如果_brow_i18n_format函数不可用，定义一个简单的替代函数
+if not functions -q _brow_i18n_format
+    function _brow_i18n_format
+        # 简单地返回第一个参数，忽略格式化
+        _brow_i18n_get $argv[1]
+    end
+end
+
 function __brow_needs_command
     set -l cmd (commandline -opc)
     if test (count $cmd) -eq 1
