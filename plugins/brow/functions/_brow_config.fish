@@ -103,9 +103,113 @@ function _brow_config_list
     # 获取所有配置名称，但排除settings
     set -l config_names (jq -r 'keys[] | select(. != "settings")' $config_file)
 
+    # 准备表头
+    set -l headers
+    set -a headers (_brow_i18n_get "config_name")
+    set -a headers (_brow_i18n_get "k8s_context")
+    set -a headers IP
+    set -a headers (_brow_i18n_get "local_port")
+    set -a headers (_brow_i18n_get "remote_port")
+    set -a headers (_brow_i18n_get "service")
+    set -a headers TTL
+
+    # 计算列宽
+    set -l widths
+    set -a widths 20 # 配置名称
+    set -a widths 30 # Kubernetes上下文
+    set -a widths 15 # IP
+    set -a widths 10 # 本地端口
+    set -a widths 10 # 远程端口
+    set -a widths 15 # 服务
+    set -a widths 10 # TTL
+
+    # 更新列宽以适应表头
+    for i in (seq (count $headers))
+        set -l header_width (string length --visible -- $headers[$i])
+        if test $header_width -gt $widths[$i]
+            set widths[$i] $header_width
+        end
+    end
+
+    # 更新列宽以适应数据
+    for name in $config_names
+        set -l k8s_context (jq -r ".[\"$name\"].k8s_context" $config_file)
+        set -l ip (jq -r ".[\"$name\"].ip" $config_file)
+        set -l local_port (jq -r ".[\"$name\"].local_port" $config_file)
+        set -l remote_port (jq -r ".[\"$name\"].remote_port" $config_file)
+        set -l service_name (jq -r ".[\"$name\"].service_name" $config_file)
+        set -l ttl (jq -r ".[\"$name\"].ttl" $config_file)
+
+        # 更新列宽
+        set -l name_width (string length --visible -- $name)
+        if test $name_width -gt $widths[1]
+            set widths[1] $name_width
+        end
+
+        set -l ctx_width (string length --visible -- $k8s_context)
+        if test $ctx_width -gt $widths[2]
+            set widths[2] $ctx_width
+        end
+
+        set -l ip_width (string length --visible -- $ip)
+        if test $ip_width -gt $widths[3]
+            set widths[3] $ip_width
+        end
+
+        set -l local_port_width (string length --visible -- $local_port)
+        if test $local_port_width -gt $widths[4]
+            set widths[4] $local_port_width
+        end
+
+        set -l remote_port_width (string length --visible -- $remote_port)
+        if test $remote_port_width -gt $widths[5]
+            set widths[5] $remote_port_width
+        end
+
+        set -l service_width (string length --visible -- $service_name)
+        if test $service_width -gt $widths[6]
+            set widths[6] $service_width
+        end
+
+        set -l ttl_width (string length --visible -- $ttl)
+        if test $ttl_width -gt $widths[7]
+            set widths[7] $ttl_width
+        end
+    end
+
     # 打印表头
-    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" (_brow_i18n_get "config_name") (_brow_i18n_get "k8s_context") IP (_brow_i18n_get "local_port") (_brow_i18n_get "remote_port") (_brow_i18n_get "service") TTL
-    printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" -------------------- ------------------------------ --------------- ---------- ---------- --------------- ----------
+    echo -n ""
+    _pad_to_width $headers[1] $widths[1]
+    echo -n " "
+    _pad_to_width $headers[2] $widths[2]
+    echo -n " "
+    _pad_to_width $headers[3] $widths[3]
+    echo -n " "
+    _pad_to_width $headers[4] $widths[4]
+    echo -n " "
+    _pad_to_width $headers[5] $widths[5]
+    echo -n " "
+    _pad_to_width $headers[6] $widths[6]
+    echo -n " "
+    _pad_to_width $headers[7] $widths[7]
+    echo ""
+
+    # 打印分隔线
+    echo -n ""
+    _pad_to_width (string repeat -n $widths[1] "-") $widths[1]
+    echo -n " "
+    _pad_to_width (string repeat -n $widths[2] "-") $widths[2]
+    echo -n " "
+    _pad_to_width (string repeat -n $widths[3] "-") $widths[3]
+    echo -n " "
+    _pad_to_width (string repeat -n $widths[4] "-") $widths[4]
+    echo -n " "
+    _pad_to_width (string repeat -n $widths[5] "-") $widths[5]
+    echo -n " "
+    _pad_to_width (string repeat -n $widths[6] "-") $widths[6]
+    echo -n " "
+    _pad_to_width (string repeat -n $widths[7] "-") $widths[7]
+    echo ""
 
     # 打印每个配置
     for name in $config_names
@@ -116,7 +220,22 @@ function _brow_config_list
         set -l service_name (jq -r ".[\"$name\"].service_name" $config_file)
         set -l ttl (jq -r ".[\"$name\"].ttl" $config_file)
 
-        printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" $name $k8s_context $ip $local_port $remote_port $service_name $ttl
+        # 打印行
+        echo -n ""
+        _pad_to_width $name $widths[1]
+        echo -n " "
+        _pad_to_width $k8s_context $widths[2]
+        echo -n " "
+        _pad_to_width $ip $widths[3]
+        echo -n " "
+        _pad_to_width $local_port $widths[4]
+        echo -n " "
+        _pad_to_width $remote_port $widths[5]
+        echo -n " "
+        _pad_to_width $service_name $widths[6]
+        echo -n " "
+        _pad_to_width $ttl $widths[7]
+        echo ""
     end
 end
 
