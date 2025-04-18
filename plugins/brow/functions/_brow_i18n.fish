@@ -46,19 +46,38 @@ function _brow_i18n_load --argument-names lang
     #   0: 成功
     #   1: 失败（语言不支持）
 
-    # 检查语言文件是否存在
-    set -l script_dir (dirname (status filename))
-    set -l i18n_dir $script_dir/../i18n
-    set -l lang_file $i18n_dir/$lang.json
+    # 首先尝试从用户配置目录加载
+    set -l user_i18n_dir ~/.config/brow/i18n
+    set -l user_lang_file $user_i18n_dir/$lang.json
 
-    if not test -f $lang_file
+    # 如果用户配置目录中的语言文件不存在，尝试从插件目录加载
+    set -l script_dir (dirname (status filename))
+    set -l plugin_i18n_dir $script_dir/../i18n
+    set -l plugin_lang_file $plugin_i18n_dir/$lang.json
+
+    # 确保用户配置目录存在
+    if not test -d $user_i18n_dir
+        mkdir -p $user_i18n_dir
+    end
+
+    # 初始化语言文件路径
+    set -l lang_file ""
+
+    # 尝试从用户配置目录加载
+    if test -f $user_lang_file
+        set lang_file $user_lang_file
+    else if test -f $plugin_lang_file
+        # 如果插件目录中存在语言文件，复制到用户配置目录
+        set lang_file $plugin_lang_file
+        cp $plugin_lang_file $user_lang_file 2>/dev/null
+    else
         # 如果指定的语言不存在，尝试使用默认语言
         if test "$lang" != zh
             echo "Language '$lang' not supported, falling back to Chinese" >&2
             _brow_i18n_load zh
             return $status
         end
-        echo "Error: Language file not found: $lang_file" >&2
+        echo "Error: Language file not found in $user_i18n_dir or $plugin_i18n_dir" >&2
         return 1
     end
 
@@ -165,18 +184,34 @@ function _brow_i18n_get_available_languages
     # 返回:
     #   可用语言的列表，以空格分隔
 
-    # 获取i18n目录
-    set -l script_dir (dirname (status filename))
-    set -l i18n_dir $script_dir/../i18n
+    # 首先检查用户配置目录
+    set -l user_i18n_dir ~/.config/brow/i18n
 
-    # 列出所有语言文件
-    set -l lang_files (find $i18n_dir -name "*.json" 2>/dev/null)
+    # 然后检查插件目录
+    set -l script_dir (dirname (status filename))
+    set -l plugin_i18n_dir $script_dir/../i18n
+
+    # 合并两个目录中的语言文件
+    set -l lang_files
+
+    # 先检查用户配置目录
+    if test -d $user_i18n_dir
+        set -a lang_files (find $user_i18n_dir -name "*.json" 2>/dev/null)
+    end
+
+    # 再检查插件目录
+    if test -d $plugin_i18n_dir
+        set -a lang_files (find $plugin_i18n_dir -name "*.json" 2>/dev/null)
+    end
 
     # 提取语言代码
     set -l langs
     for file in $lang_files
         set -l lang (basename $file .json)
-        set -a langs $lang
+        # 确保每种语言只出现一次
+        if not contains $lang $langs
+            set -a langs $lang
+        end
     end
 
     # 返回语言列表
