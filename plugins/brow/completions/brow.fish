@@ -188,35 +188,35 @@ function __brow_k8s_contexts
 end
 
 # 主命令补全
-complete -c brow -f -n __brow_needs_command -a connect -d "(_brow_i18n_get 'completion_cmd_connect')"
-complete -c brow -f -n __brow_needs_command -a list -d "(_brow_i18n_get 'completion_cmd_list')"
-complete -c brow -f -n __brow_needs_command -a stop -d "(_brow_i18n_get 'completion_cmd_stop')"
-complete -c brow -f -n __brow_needs_command -a config -d "(_brow_i18n_get 'completion_cmd_config')"
-complete -c brow -f -n __brow_needs_command -a pod -d "(_brow_i18n_get 'completion_cmd_pod')"
-complete -c brow -f -n __brow_needs_command -a forward -d "(_brow_i18n_get 'completion_cmd_forward')"
-complete -c brow -f -n __brow_needs_command -a health-check -d "(_brow_i18n_get 'completion_cmd_health_check')"
-complete -c brow -f -n __brow_needs_command -a version -d "(_brow_i18n_get 'completion_cmd_version')"
-complete -c brow -f -n __brow_needs_command -a help -d "(_brow_i18n_get 'completion_cmd_help')"
-complete -c brow -f -n __brow_needs_command -a language -d "(_brow_i18n_get 'completion_cmd_language')"
+complete -c brow -f -n __brow_needs_command -a connect -d (_brow_i18n_get 'completion_cmd_connect')
+complete -c brow -f -n __brow_needs_command -a list -d (_brow_i18n_get 'completion_cmd_list')
+complete -c brow -f -n __brow_needs_command -a stop -d (_brow_i18n_get 'completion_cmd_stop')
+complete -c brow -f -n __brow_needs_command -a config -d (_brow_i18n_get 'completion_cmd_config')
+complete -c brow -f -n __brow_needs_command -a pod -d (_brow_i18n_get 'completion_cmd_pod')
+complete -c brow -f -n __brow_needs_command -a forward -d (_brow_i18n_get 'completion_cmd_forward')
+complete -c brow -f -n __brow_needs_command -a health-check -d (_brow_i18n_get 'completion_cmd_health_check')
+complete -c brow -f -n __brow_needs_command -a version -d (_brow_i18n_get 'completion_cmd_version')
+complete -c brow -f -n __brow_needs_command -a help -d (_brow_i18n_get 'completion_cmd_help')
+complete -c brow -f -n __brow_needs_command -a language -d (_brow_i18n_get 'completion_cmd_language')
 
 # config 子命令补全
-complete -c brow -f -n "__brow_using_command config" -a add -d "(_brow_i18n_get 'completion_subcmd_config_add')"
-complete -c brow -f -n "__brow_using_command config" -a list -d "(_brow_i18n_get 'completion_subcmd_config_list')"
-complete -c brow -f -n "__brow_using_command config" -a show -d "(_brow_i18n_get 'completion_subcmd_config_show')"
-complete -c brow -f -n "__brow_using_command config" -a edit -d "(_brow_i18n_get 'completion_subcmd_config_edit')"
-complete -c brow -f -n "__brow_using_command config" -a remove -d "(_brow_i18n_get 'completion_subcmd_config_remove')"
+complete -c brow -f -n "__brow_using_command config" -a add -d (_brow_i18n_get 'completion_subcmd_config_add')
+complete -c brow -f -n "__brow_using_command config" -a list -d (_brow_i18n_get 'completion_subcmd_config_list')
+complete -c brow -f -n "__brow_using_command config" -a show -d (_brow_i18n_get 'completion_subcmd_config_show')
+complete -c brow -f -n "__brow_using_command config" -a edit -d (_brow_i18n_get 'completion_subcmd_config_edit')
+complete -c brow -f -n "__brow_using_command config" -a remove -d (_brow_i18n_get 'completion_subcmd_config_remove')
 
 # pod 子命令补全
-complete -c brow -f -n "__brow_using_command pod" -a create -d "(_brow_i18n_get 'completion_subcmd_pod_create')"
-complete -c brow -f -n "__brow_using_command pod" -a list -d "(_brow_i18n_get 'completion_subcmd_pod_list')"
-complete -c brow -f -n "__brow_using_command pod" -a info -d "(_brow_i18n_get 'completion_subcmd_pod_info')"
-complete -c brow -f -n "__brow_using_command pod" -a delete -d "(_brow_i18n_get 'completion_subcmd_pod_delete')"
-complete -c brow -f -n "__brow_using_command pod" -a cleanup -d "(_brow_i18n_get 'completion_subcmd_pod_cleanup')"
+complete -c brow -f -n "__brow_using_command pod" -a create -d (_brow_i18n_get 'completion_subcmd_pod_create')
+complete -c brow -f -n "__brow_using_command pod" -a list -d (_brow_i18n_get 'completion_subcmd_pod_list')
+complete -c brow -f -n "__brow_using_command pod" -a info -d (_brow_i18n_get 'completion_subcmd_pod_info')
+complete -c brow -f -n "__brow_using_command pod" -a delete -d (_brow_i18n_get 'completion_subcmd_pod_delete')
+complete -c brow -f -n "__brow_using_command pod" -a cleanup -d (_brow_i18n_get 'completion_subcmd_pod_cleanup')
 
 # forward 子命令补全
-complete -c brow -f -n "__brow_using_command forward" -a start -d "(_brow_i18n_get 'completion_subcmd_forward_start')"
-complete -c brow -f -n "__brow_using_command forward" -a list -d "(_brow_i18n_get 'completion_subcmd_forward_list')"
-complete -c brow -f -n "__brow_using_command forward" -a stop -d "(_brow_i18n_get 'completion_subcmd_forward_stop')"
+complete -c brow -f -n "__brow_using_command forward" -a start -d (_brow_i18n_get 'completion_subcmd_forward_start')
+complete -c brow -f -n "__brow_using_command forward" -a list -d (_brow_i18n_get 'completion_subcmd_forward_list')
+complete -c brow -f -n "__brow_using_command forward" -a stop -d (_brow_i18n_get 'completion_subcmd_forward_stop')
 
 # 配置名称补全
 complete -c brow -f -n "__brow_using_subcommand config show" -a "(__brow_config_names)"
@@ -238,5 +238,5 @@ complete -c brow -f -n "__brow_using_command stop" -a "(__brow_forward_ids)"
 complete -c brow -f -n "__brow_using_subcommand config add" -a "(__brow_k8s_contexts)"
 
 # language 子命令补全
-complete -c brow -f -n "__brow_using_command language" -a set -d "(_brow_i18n_get 'completion_subcmd_language_set')"
+complete -c brow -f -n "__brow_using_command language" -a set -d (_brow_i18n_get 'completion_subcmd_language_set')
 complete -c brow -f -n "__brow_using_subcommand language set" -a "zh en"
