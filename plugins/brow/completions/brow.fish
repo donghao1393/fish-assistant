@@ -79,7 +79,7 @@ function __brow_forward_ids
                     # 如果这个配置还没有被处理过，输出配置名称作为选项
                     if not contains $config_name $processed_configs
                         set -a processed_configs $config_name
-                        set -l config_description "$config_name (port:$local_port) [active]"
+                        set -l config_description "$config_name (port:$local_port) ["(_brow_i18n_get "forward_status_active")"]"
                         echo $config_name\t$config_description
                     end
                 end
@@ -90,7 +90,7 @@ function __brow_forward_ids
     # 添加所有配置名称作为选项，但只添加那些还没有被处理过的
     for config_name in (__brow_config_names)
         if not contains $config_name $processed_configs
-            echo $config_name\t"$config_name [config]"
+            echo $config_name\t"$config_name ["(_brow_i18n_get "completion_config")"]"
         end
     end
 end
@@ -101,34 +101,35 @@ function __brow_k8s_contexts
 end
 
 # 主命令补全
-complete -c brow -f -n __brow_needs_command -a connect -d 创建连接到指定配置
-complete -c brow -f -n __brow_needs_command -a list -d 列出活跃的连接
-complete -c brow -f -n __brow_needs_command -a stop -d 停止连接
-complete -c brow -f -n __brow_needs_command -a config -d 管理连接配置
-complete -c brow -f -n __brow_needs_command -a pod -d "管理Kubernetes Pod"
-complete -c brow -f -n __brow_needs_command -a forward -d "管理端口转发 (高级功能)"
-complete -c brow -f -n __brow_needs_command -a health-check -d 检查和修复不一致的状态
-complete -c brow -f -n __brow_needs_command -a version -d 显示版本信息
-complete -c brow -f -n __brow_needs_command -a help -d 显示帮助信息
+complete -c brow -f -n __brow_needs_command -a connect -d "(_brow_i18n_get 'completion_cmd_connect')"
+complete -c brow -f -n __brow_needs_command -a list -d "(_brow_i18n_get 'completion_cmd_list')"
+complete -c brow -f -n __brow_needs_command -a stop -d "(_brow_i18n_get 'completion_cmd_stop')"
+complete -c brow -f -n __brow_needs_command -a config -d "(_brow_i18n_get 'completion_cmd_config')"
+complete -c brow -f -n __brow_needs_command -a pod -d "(_brow_i18n_get 'completion_cmd_pod')"
+complete -c brow -f -n __brow_needs_command -a forward -d "(_brow_i18n_get 'completion_cmd_forward')"
+complete -c brow -f -n __brow_needs_command -a health-check -d "(_brow_i18n_get 'completion_cmd_health_check')"
+complete -c brow -f -n __brow_needs_command -a version -d "(_brow_i18n_get 'completion_cmd_version')"
+complete -c brow -f -n __brow_needs_command -a help -d "(_brow_i18n_get 'completion_cmd_help')"
+complete -c brow -f -n __brow_needs_command -a language -d "(_brow_i18n_get 'completion_cmd_language')"
 
 # config 子命令补全
-complete -c brow -f -n "__brow_using_command config" -a add -d 添加新配置
-complete -c brow -f -n "__brow_using_command config" -a list -d 列出所有配置
-complete -c brow -f -n "__brow_using_command config" -a show -d 显示特定配置详情
-complete -c brow -f -n "__brow_using_command config" -a edit -d 编辑配置
-complete -c brow -f -n "__brow_using_command config" -a remove -d 删除配置
+complete -c brow -f -n "__brow_using_command config" -a add -d "(_brow_i18n_get 'completion_subcmd_config_add')"
+complete -c brow -f -n "__brow_using_command config" -a list -d "(_brow_i18n_get 'completion_subcmd_config_list')"
+complete -c brow -f -n "__brow_using_command config" -a show -d "(_brow_i18n_get 'completion_subcmd_config_show')"
+complete -c brow -f -n "__brow_using_command config" -a edit -d "(_brow_i18n_get 'completion_subcmd_config_edit')"
+complete -c brow -f -n "__brow_using_command config" -a remove -d "(_brow_i18n_get 'completion_subcmd_config_remove')"
 
 # pod 子命令补全
-complete -c brow -f -n "__brow_using_command pod" -a create -d 根据配置创建Pod
-complete -c brow -f -n "__brow_using_command pod" -a list -d 列出当前所有Pod
-complete -c brow -f -n "__brow_using_command pod" -a info -d 查看Pod详细信息
-complete -c brow -f -n "__brow_using_command pod" -a delete -d 手动删除Pod
-complete -c brow -f -n "__brow_using_command pod" -a cleanup -d 清理过期的Pod
+complete -c brow -f -n "__brow_using_command pod" -a create -d "(_brow_i18n_get 'completion_subcmd_pod_create')"
+complete -c brow -f -n "__brow_using_command pod" -a list -d "(_brow_i18n_get 'completion_subcmd_pod_list')"
+complete -c brow -f -n "__brow_using_command pod" -a info -d "(_brow_i18n_get 'completion_subcmd_pod_info')"
+complete -c brow -f -n "__brow_using_command pod" -a delete -d "(_brow_i18n_get 'completion_subcmd_pod_delete')"
+complete -c brow -f -n "__brow_using_command pod" -a cleanup -d "(_brow_i18n_get 'completion_subcmd_pod_cleanup')"
 
 # forward 子命令补全
-complete -c brow -f -n "__brow_using_command forward" -a start -d 开始端口转发
-complete -c brow -f -n "__brow_using_command forward" -a list -d 列出活跃的转发
-complete -c brow -f -n "__brow_using_command forward" -a stop -d 停止特定的转发
+complete -c brow -f -n "__brow_using_command forward" -a start -d "(_brow_i18n_get 'completion_subcmd_forward_start')"
+complete -c brow -f -n "__brow_using_command forward" -a list -d "(_brow_i18n_get 'completion_subcmd_forward_list')"
+complete -c brow -f -n "__brow_using_command forward" -a stop -d "(_brow_i18n_get 'completion_subcmd_forward_stop')"
 
 # 配置名称补全
 complete -c brow -f -n "__brow_using_subcommand config show" -a "(__brow_config_names)"
@@ -148,3 +149,7 @@ complete -c brow -f -n "__brow_using_command stop" -a "(__brow_forward_ids)"
 
 # Kubernetes上下文补全
 complete -c brow -f -n "__brow_using_subcommand config add" -a "(__brow_k8s_contexts)"
+
+# language 子命令补全
+complete -c brow -f -n "__brow_using_command language" -a set -d "(_brow_i18n_get 'completion_subcmd_language_set')"
+complete -c brow -f -n "__brow_using_subcommand language set" -a "zh en"

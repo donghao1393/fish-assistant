@@ -204,5 +204,37 @@
   "edit_remote_port": "远程端口 [%s]: ",
   "edit_service_name": "服务名称 [%s]: ",
   "edit_ttl": "TTL [%s]: ",
-  "confirm_delete_config": "是否仍要删除配置? [y/N]: "
+  "confirm_delete_config": "是否仍要删除配置? [y/N]: ",
+
+  "completion_config": "[配置]",
+  "completion_active_connection": "[活跃连接]",
+
+  "completion_cmd_connect": "创建连接到指定配置",
+  "completion_cmd_list": "列出活跃的连接",
+  "completion_cmd_stop": "停止连接",
+  "completion_cmd_config": "管理连接配置",
+  "completion_cmd_pod": "管理Kubernetes Pod",
+  "completion_cmd_forward": "管理端口转发 (高级功能)",
+  "completion_cmd_health_check": "检查和修复不一致的状态",
+  "completion_cmd_version": "显示版本信息",
+  "completion_cmd_help": "显示帮助信息",
+  "completion_cmd_language": "管理语言设置",
+
+  "completion_subcmd_config_add": "添加新配置",
+  "completion_subcmd_config_list": "列出所有配置",
+  "completion_subcmd_config_show": "显示特定配置详情",
+  "completion_subcmd_config_edit": "编辑配置",
+  "completion_subcmd_config_remove": "删除配置",
+
+  "completion_subcmd_pod_create": "根据配置创建Pod",
+  "completion_subcmd_pod_list": "列出当前所有Pod",
+  "completion_subcmd_pod_info": "查看Pod详细信息",
+  "completion_subcmd_pod_delete": "手动删除Pod",
+  "completion_subcmd_pod_cleanup": "清理过期的Pod",
+
+  "completion_subcmd_forward_start": "开始端口转发",
+  "completion_subcmd_forward_list": "列出活跃的转发",
+  "completion_subcmd_forward_stop": "停止特定的转发",
+
+  "completion_subcmd_language_set": "设置语言"
 }

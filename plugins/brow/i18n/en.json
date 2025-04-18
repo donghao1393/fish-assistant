@@ -204,5 +204,37 @@
   "edit_remote_port": "Remote port [%s]: ",
   "edit_service_name": "Service name [%s]: ",
   "edit_ttl": "TTL [%s]: ",
-  "confirm_delete_config": "Still want to delete the config? [y/N]: "
+  "confirm_delete_config": "Still want to delete the config? [y/N]: ",
+
+  "completion_config": "[config]",
+  "completion_active_connection": "[active connection]",
+
+  "completion_cmd_connect": "Create connection to specified config",
+  "completion_cmd_list": "List active connections",
+  "completion_cmd_stop": "Stop connection",
+  "completion_cmd_config": "Manage connection configurations",
+  "completion_cmd_pod": "Manage Kubernetes Pods",
+  "completion_cmd_forward": "Manage port forwarding (advanced)",
+  "completion_cmd_health_check": "Check and fix inconsistent states",
+  "completion_cmd_version": "Show version information",
+  "completion_cmd_help": "Show help information",
+  "completion_cmd_language": "Manage language settings",
+
+  "completion_subcmd_config_add": "Add new configuration",
+  "completion_subcmd_config_list": "List all configurations",
+  "completion_subcmd_config_show": "Show specific configuration details",
+  "completion_subcmd_config_edit": "Edit configuration",
+  "completion_subcmd_config_remove": "Delete configuration",
+
+  "completion_subcmd_pod_create": "Create Pod from configuration",
+  "completion_subcmd_pod_list": "List all current Pods",
+  "completion_subcmd_pod_info": "View Pod details",
+  "completion_subcmd_pod_delete": "Manually delete Pod",
+  "completion_subcmd_pod_cleanup": "Clean up expired Pods",
+
+  "completion_subcmd_forward_start": "Start port forwarding",
+  "completion_subcmd_forward_list": "List active forwards",
+  "completion_subcmd_forward_stop": "Stop specific forward",
+
+  "completion_subcmd_language_set": "Set language"
 }
