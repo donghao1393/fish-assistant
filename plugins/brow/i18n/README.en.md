@@ -4,6 +4,7 @@ The brow plugin supports multiple languages. Currently, the following languages 
 
 - Chinese (zh)
 - English (en)
+- Russian (ru)
 
 ## How to Switch Languages
 

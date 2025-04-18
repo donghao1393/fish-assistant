@@ -242,4 +242,4 @@ complete -c brow -f -n "__brow_using_subcommand config add" -a "(__brow_k8s_cont
 
 # language 子命令补全
 complete -c brow -f -n "__brow_using_command language" -a set -d (_brow_i18n_get 'completion_subcmd_language_set')
-complete -c brow -f -n "__brow_using_subcommand language set" -a "zh en"
+complete -c brow -f -n "__brow_using_subcommand language set" -a "zh en ru"
