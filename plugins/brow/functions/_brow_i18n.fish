@@ -19,7 +19,13 @@ function _brow_i18n_init
     # 获取配置文件中的语言设置
     set -l config_file ~/.config/brow/config.json
     if test -f $config_file
-        set -l lang (jq -r '.language // ""' $config_file 2>/dev/null)
+        # 先尝试从新的配置格式中读取
+        set -l lang (jq -r '.settings.language // ""' $config_file 2>/dev/null)
+        # 如果新格式中没有，尝试从旧格式中读取
+        if test -z "$lang" -o "$lang" = null
+            set lang (jq -r '.language // ""' $config_file 2>/dev/null)
+        end
+
         if test -n "$lang" -a "$lang" != null
             _brow_i18n_load $lang
             return 0
@@ -163,17 +169,34 @@ function _brow_i18n_set_language --argument-names lang
         # 读取现有配置
         set -l config_data (cat $config_file)
 
-        # 更新语言设置
-        set -l updated_config (echo $config_data | jq ".language = \"$lang\"")
+        # 检查是否已经有settings对象
+        set -l has_settings (echo $config_data | jq 'has("settings")')
 
-        # 写入配置文件
-        echo $updated_config >$config_file
+        # 更新语言设置
+        if test "$has_settings" = true
+            # 如果已经有settings对象，直接更新语言设置
+            set -l updated_config (echo $config_data | jq ".settings.language = \"$lang\"")
+            # 写入配置文件
+            echo $updated_config >$config_file
+        else
+            # 如果没有settings对象，创建一个
+            set -l updated_config (echo $config_data | jq ".settings = {\"language\": \"$lang\"}")
+            # 写入配置文件
+            echo $updated_config >$config_file
+
+            # 如果有旧的language字段，删除它
+            set -l has_old_lang (echo $updated_config | jq 'has("language")')
+            if test "$has_old_lang" = true
+                set -l final_config (echo $updated_config | jq 'del(.language)')
+                echo $final_config >$config_file
+            end
+        end
     else
         # 创建配置目录
         mkdir -p (dirname $config_file)
 
-        # 创建新的配置文件
-        echo "{\"language\": \"$lang\"}" >$config_file
+        # 创建新的配置文件，使用新格式
+        echo "{\"settings\": {\"language\": \"$lang\"}}" >$config_file
     end
 
     return 0

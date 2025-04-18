@@ -116,7 +116,8 @@ end
 function __brow_config_names
     set -l config_file ~/.config/brow/config.json
     if test -f $config_file
-        jq -r 'keys[]' $config_file
+        # 获取所有键，但排除settings
+        jq -r 'keys[] | select(. != "settings")' $config_file
     end
 end
 

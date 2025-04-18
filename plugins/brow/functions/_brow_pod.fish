@@ -146,7 +146,8 @@ function _brow_pod_list
 
     # 获取配置中的上下文
     set -l config_file ~/.config/brow/config.json
-    set -l contexts (jq -r '.[] | .k8s_context' $config_file | sort -u)
+    # 排除settings字段
+    set -l contexts (jq -r 'with_entries(select(.key != "settings")) | .[] | .k8s_context' $config_file | sort -u)
 
     # 如果没有配置，使用当前上下文
     if test -z "$contexts"

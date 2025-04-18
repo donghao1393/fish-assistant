@@ -93,15 +93,15 @@ function _brow_config_list
     echo
 
     # 检查是否有配置
-    set -l config_count (jq -r 'keys | length' $config_file)
+    set -l config_count (jq -r 'keys | map(select(. != "settings")) | length' $config_file)
 
     if test $config_count -eq 0
         echo (_brow_i18n_get "no_configs_found")
         return 0
     end
 
-    # 获取所有配置名称
-    set -l config_names (jq -r 'keys[]' $config_file)
+    # 获取所有配置名称，但排除settings
+    set -l config_names (jq -r 'keys[] | select(. != "settings")' $config_file)
 
     # 打印表头
     printf "%-20s %-30s %-15s %-10s %-10s %-15s %-10s\n" (_brow_i18n_get "config_name") (_brow_i18n_get "k8s_context") IP (_brow_i18n_get "local_port") (_brow_i18n_get "remote_port") (_brow_i18n_get "service") TTL
