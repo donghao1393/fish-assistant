@@ -246,7 +246,8 @@ function brow --description "Kubernetes Connection Manager"
                 case set
                     if test (count $argv) -ne 1
                         echo "Usage: brow language set <language-code>"
-                        echo "Available languages: "(_brow_i18n_get_available_languages)
+                        set -l available_langs (_brow_i18n_get_available_languages)
+                        echo "Available languages: $available_langs"
                         return 1
                     end
 
