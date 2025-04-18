@@ -509,7 +509,8 @@ function _brow_pod_delete --argument-names pod_id_or_config
             set -l local_port (echo $forward_data | jq -r '.local_port')
             set -l pid (echo $forward_data | jq -r '.pid')
 
-            echo "  ID: $forward_id, "(_brow_i18n_format "forward_local_port" $local_port)", PID: $pid"
+            set -l local_port_text (_brow_i18n_format "forward_local_port" $local_port)
+            echo "  ID: $forward_id, $local_port_text, PID: $pid"
         end
 
         read -l -P (_brow_i18n_get "confirm_stop_forwards") confirm
