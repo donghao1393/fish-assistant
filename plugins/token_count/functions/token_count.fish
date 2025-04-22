@@ -2,21 +2,22 @@ function token_count --description 'Count tokens in text files for LLM interacti
     # 参数处理
     set -l options 'h/human-readable' 'v/verbose'
     argparse $options -- $argv
-    
+
     if test (count $argv) -eq 0
         echo "Usage: token_count [-h|--human-readable] [-v|--verbose] <file_path> [file_path...]" >&2
         return 1
     end
 
-    # 检查并设置脚本目录
-    set -l script_dir
-    if set -q SCRIPTS_DIR
-        set script_dir $SCRIPTS_DIR/fish/plugins/token_count
-    else
-        # 如果SCRIPTS_DIR未设置，尝试从当前脚本位置推断
-        set -l current_script (status filename)
-        set script_dir (dirname (dirname (dirname $current_script)))
+    # 检查FISH_ASSISTANT_HOME环境变量
+    if not set -q FISH_ASSISTANT_HOME
+        echo "错误: 未设置FISH_ASSISTANT_HOME环境变量"
+        echo "请在~/.config/fish/config.fish中添加以下内容:"
+        echo "    set -gx FISH_ASSISTANT_HOME /path/to/fish-assistant"
+        return 1
     end
+
+    # 设置脚本目录
+    set -l script_dir $FISH_ASSISTANT_HOME/plugins/token_count
     set -l counter_script $script_dir/token_counter.py
     set -l venv_dir $script_dir/.venv
     set -l files $argv
@@ -26,21 +27,21 @@ function token_count --description 'Count tokens in text files for LLM interacti
     if test (count $files) -gt 1
         set is_multiple 1
     end
-    
+
     # 过滤掉不应处理的二进制文件
     set -l filtered_files
-    
+
     # 先根据扩展名进行初步过滤，提高性能
     set -l text_extensions txt md markdown rst py js ts html css xml json yaml yml toml ini conf sh bash zsh fish php rb pl sql c cpp h hpp java go cs scala kt swift rs d jsx tsx vue svelte scss sass less csv tsv log
     set -l doc_extensions pdf doc docx ppt pptx xls xlsx
-    
+
     for file in $files
         # 先检查是否目录
         if test -d "$file"
             # 目录直接跳过，不显示错误
             continue
         end
-        
+
         if test -f "$file"
             # 检查扩展名
             set -l ext (string split -r -m1 '.' "$file" | tail -n 1)
@@ -66,7 +67,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
             echo "跳过：$file (不存在)" >&2
         end
     end
-    
+
     # 更新文件列表为过滤后的列表
     set files $filtered_files
 
@@ -101,7 +102,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
     set -l total_tokens 0
     set -l total_size 0
     set -l file_count 0
-    
+
     # 用于单文件显示的变量
     set -l last_file ""
     set -l last_type ""
@@ -122,22 +123,22 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
         # 使用 uv 运行 Python 脚本并解析结果
         pushd $script_dir
-        
+
         # 根据是否需要详细输出来决定是否传递 --verbose 参数
         if set -q _flag_verbose
             set result (uv run $counter_script "$file_path" --verbose)
         else
             set result (uv run $counter_script "$file_path" 2>/dev/null)
         end
-        
+
         set -l status_code $status
         popd
-        
+
         if test $status_code -ne 0
             echo "Error: 处理文件失败: $file_path" >&2
             continue
         end
-        
+
         # 从JSON结果中提取数据
         set -l type ""
         set -l encoding ""
@@ -146,7 +147,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set -l tokens 0
         set -l size 0
         set -l parsed 0
-        
+
         # 优先使用jq，再使用jnv，最后使用正则表达式
         if command -q jq
             set type (echo $result | jq -r '.type' 2>/dev/null)
@@ -159,7 +160,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 set size (echo $result | jq -r '.size' 2>/dev/null)
             end
         end
-        
+
         if test $parsed -eq 0; and command -q jnv
             set type (echo $result | jnv -r '.type' 2>/dev/null)
             if test $status -eq 0
@@ -171,7 +172,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 set size (echo $result | jnv -r '.size' 2>/dev/null)
             end
         end
-        
+
         # 如果jq和jnv都不可用或解析失败，使用正则表达式解析
         if test $parsed -eq 0
             set type (echo $result | string match -r '"type":\s*"([^"]*)"' | tail -n 1)
@@ -181,13 +182,13 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set tokens (echo $result | string match -r '"tokens":\s*(\d+)' | tail -n 1)
             set size (echo $result | string match -r '"size":\s*(\d+)' | tail -n 1)
         end
-        
+
         # 如果数据解析失败，跳过该文件
         if test -z "$type" -o -z "$encoding" -o -z "$chars" -o -z "$words" -o -z "$tokens" -o -z "$size"
             echo "Error: 无法解析文件处理结果: $file_path" >&2
             continue
         end
-        
+
         # 保存最后一个处理的文件信息(用于单文件模式)
         set last_file $file
         set last_type $type
@@ -203,7 +204,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set total_tokens (math $total_tokens + $tokens)
         set total_size (math $total_size + $size)
         set file_count (math $file_count + 1)
-        
+
         # 存储结果
         set -a file_results $file
         set -a file_results $type
@@ -226,7 +227,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set -l display_words $last_words
         set -l display_tokens $last_tokens
         set -l display_size "$last_size bytes"
-        
+
         # 人类可读格式
         if set -q _flag_human_readable
             set display_chars (_human_readable_number $last_chars)
@@ -234,7 +235,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_tokens (_human_readable_number $last_tokens)
             set display_size (_human_readable_size $last_size)
         end
-        
+
         echo "文件分析结果："
         echo "文件: $last_file"
         echo "文件类型: $last_type"
@@ -260,7 +261,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
     # 根据标题计算最小列宽
     set -l headers "文件名" "类型" "编码" "字符数" "单词数" "Token数" "大小"
     set -l header_widths (string length --visible -- $headers[1]) (string length --visible -- $headers[2]) (string length --visible -- $headers[3]) (string length --visible -- $headers[4]) (string length --visible -- $headers[5]) (string length --visible -- $headers[6]) (string length --visible -- $headers[7])
-    
+
     if test $header_widths[1] -gt $filename_width
         set filename_width $header_widths[1]
     end
@@ -293,39 +294,39 @@ function token_count --description 'Count tokens in text files for LLM interacti
     # 检查每行数据的宽度，更新列宽
     for i in (seq 1 $file_count)
         set -l idx (math "($i - 1) * 7 + 1")
-        
+
         # 文件名列
         set -l filename (basename $file_results[$idx])
         set -l name_visible_width (string length --visible -- "$filename")
         if test $name_visible_width -gt $filename_width
             set filename_width $name_visible_width
         end
-        
+
         # 文件类型列
         set -l filetype $file_results[(math $idx + 1)]
         set -l type_visible_width (string length --visible -- "$filetype")
         if test $type_visible_width -gt $type_width
             set type_width $type_visible_width
         end
-        
+
         # 编码列
         set -l fileencoding $file_results[(math $idx + 2)]
         set -l encoding_visible_width (string length --visible -- "$fileencoding")
         if test $encoding_visible_width -gt $encoding_width
             set encoding_width $encoding_visible_width
         end
-        
+
         # 准备显示数据
         set -l chars $file_results[(math $idx + 3)]
         set -l words $file_results[(math $idx + 4)]
         set -l tokens $file_results[(math $idx + 5)]
         set -l size $file_results[(math $idx + 6)]
-        
+
         set -l display_chars $chars
         set -l display_words $words
         set -l display_tokens $tokens
         set -l display_size "$size bytes"
-        
+
         # 人类可读格式(用于计算列宽)
         if set -q _flag_human_readable
             set display_chars (_human_readable_number $chars)
@@ -333,23 +334,23 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_tokens (_human_readable_number $tokens)
             set display_size (_human_readable_size $size)
         end
-        
+
         # 检查其他列的宽度
         set -l chars_visible_width (string length --visible -- "$display_chars")
         if test $chars_visible_width -gt $chars_width
             set chars_width $chars_visible_width
         end
-        
+
         set -l words_visible_width (string length --visible -- "$display_words")
         if test $words_visible_width -gt $words_width
             set words_width $words_visible_width
         end
-        
+
         set -l tokens_visible_width (string length --visible -- "$display_tokens")
         if test $tokens_visible_width -gt $tokens_width
             set tokens_width $tokens_visible_width
         end
-        
+
         set -l size_visible_width (string length --visible -- "$display_size")
         if test $size_visible_width -gt $size_width
             set size_width $size_visible_width
@@ -358,7 +359,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
 
     # 打印表格标题
     echo "文件统计表格："
-    
+
     # 打印表头
     echo -n "| "
     _pad_to_width "文件名" $filename_width
@@ -403,13 +404,13 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set -l words $file_results[(math $idx + 4)]
         set -l tokens $file_results[(math $idx + 5)]
         set -l size $file_results[(math $idx + 6)]
-        
+
         # 准备显示数据
         set -l display_chars $chars
         set -l display_words $words
         set -l display_tokens $tokens
         set -l display_size "$size bytes"
-        
+
         # 人类可读格式
         if set -q _flag_human_readable
             set display_chars (_human_readable_number $chars)
@@ -417,7 +418,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
             set display_tokens (_human_readable_number $tokens)
             set display_size (_human_readable_size $size)
         end
-        
+
         # 打印行
         echo -n "| "
         _pad_to_width "$filename" $filename_width
@@ -442,7 +443,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
     set -l display_total_words $total_words
     set -l display_total_tokens $total_tokens
     set -l display_total_size "$total_size bytes"
-    
+
     # 人类可读格式的总计
     if set -q _flag_human_readable
         set display_total_chars (_human_readable_number $total_chars)
@@ -467,7 +468,7 @@ function token_count --description 'Count tokens in text files for LLM interacti
     echo -n " | "
     _pad_to_width (string repeat -n $size_width "-") $size_width
     echo " |"
-    
+
     # 打印总计行
     echo -n "| "
     _pad_to_width "$total_str" $filename_width
@@ -493,11 +494,11 @@ function _pad_to_width --argument-names str width fill
     if test -z "$fill"
         set fill " "
     end
-    
+
     # 计算显示宽度
     set -l str_width (string length --visible -- "$str")
     set -l padding (math "$width - $str_width")
-    
+
     echo -n "$str"
     if test $padding -gt 0
         echo -n (string repeat -n $padding "$fill")
