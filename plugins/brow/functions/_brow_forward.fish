@@ -103,15 +103,45 @@ function _brow_forward_start --argument-names config_name local_port use_sudo
         set is_privileged_port 1
     end
 
+    # 创建一个临时文件来存储进程 ID
+    set -l pid_file (mktemp)
+
     if test "$use_sudo" = true -a $is_privileged_port -eq 1
         echo (_brow_i18n_get "using_sudo") >&2
-        sudo kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >$error_file 2>&1 &
+        # 使用sudo时，在新的fish进程中运行，并将进程 ID写入临时文件
+        set -l sudo_cmd "sudo kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >$error_file 2>&1 & echo \$! >$pid_file"
+        fish -c "$sudo_cmd" >&2
+        # 等待密码输入完成和进程启动，最多等待30秒
+        set -l max_wait 30 # 最长等待时间（秒）
+        set -l waited 0
+        while test $waited -lt $max_wait
+            # 检查进程ID文件是否存在并有内容
+            if test -s $pid_file
+                set -l pid_content (cat $pid_file)
+                if test -n "$pid_content"
+                    # 检查进程是否存在
+                    if kill -0 $pid_content 2>/dev/null
+                        break
+                    end
+                end
+            end
+            sleep 1
+            set waited (math $waited + 1)
+        end
+
+        # 如果超时仍然没有有效的进程ID，输出警告
+        if test $waited -eq $max_wait
+            echo (_brow_i18n_get "warning_sudo_timeout") >&2
+        end
     else
         kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >$error_file 2>&1 &
+        # 将进程 ID写入临时文件
+        echo $last_pid >$pid_file
     end
 
-    # 获取进程ID
-    set -l pid $last_pid
+    # 从临时文件中读取进程 ID
+    set -l pid (cat $pid_file)
+    rm $pid_file 2>/dev/null
 
     # 等待一会儿，确保端口转发已启动
     sleep 1
