@@ -19,6 +19,8 @@ if not functions -q _brow_i18n_get
     function _brow_i18n_get
         # 定义一些基本的翻译
         switch $argv[1]
+            case completion_option_sudo
+                echo "Use sudo for low-numbered ports (0-1023)"
             case completion_cmd_connect
                 echo "Create connection to specified config"
             case completion_cmd_list
@@ -196,7 +198,10 @@ complete -c brow -f -n __brow_needs_command -a list -d (_brow_i18n_get 'completi
 complete -c brow -f -n __brow_needs_command -a stop -d (_brow_i18n_get 'completion_cmd_stop')
 
 # 选项补全
-complete -c brow -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
+# 在connect命令中添加--sudo选项
+complete -c brow -n "__brow_using_command connect" -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
+# 在forward start命令中添加--sudo选项
+complete -c brow -n "__brow_using_subcommand forward start" -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
 complete -c brow -f -n __brow_needs_command -a config -d (_brow_i18n_get 'completion_cmd_config')
 complete -c brow -f -n __brow_needs_command -a pod -d (_brow_i18n_get 'completion_cmd_pod')
 complete -c brow -f -n __brow_needs_command -a forward -d (_brow_i18n_get 'completion_cmd_forward')
