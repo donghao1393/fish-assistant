@@ -76,7 +76,7 @@
 
   "help_title": "brow - Менеджер подключений Kubernetes",
   "help_main_commands": "Основные команды:",
-  "help_cmd_connect": "  brow connect <имя_конфигурации> [локальный_порт]     Создать подключение к указанной конфигурации",
+  "help_cmd_connect": "  brow connect [--sudo] <имя_конфигурации> [локальный_порт]     Создать подключение к указанной конфигурации",
   "help_cmd_list": "  brow list                                Список активных подключений",
   "help_cmd_stop": "  brow stop <id_перенаправления|имя_конфигурации>       Остановить подключение и удалить Под",
 
@@ -94,7 +94,7 @@
   "help_cmd_pod_cleanup": "  brow pod cleanup                        Очистить истекшие Поды",
   "help_cmd_forward_list": "  brow forward list                       Список активных перенаправлений (то же, что и brow list)",
   "help_cmd_forward_stop": "  brow forward stop <id|имя_конфигурации>      Остановить перенаправление (без удаления Пода)",
-  "help_cmd_forward_start": "  brow forward start <имя_конфигурации> [локальный_порт]  Запустить перенаправление порта (то же, что и brow connect)",
+  "help_cmd_forward_start": "  brow forward start [--sudo] <имя_конфигурации> [локальный_порт]  Запустить перенаправление порта (то же, что и brow connect)",
   "help_cmd_health_check": "  brow health-check                        Проверить и исправить несогласованные состояния",
   "help_cmd_language": "  brow language                           Показать текущую языковую настройку",
   "help_cmd_language_set": "  brow language set <код_языка>        Установить язык (zh, en, ru, ...)",
@@ -130,13 +130,13 @@
   "available_pod_subcmds": "Доступные подкоманды: create, list, info, delete, cleanup",
 
   "error_forward_cmd": "Ошибка: команда forward требует указания типа операции (start/list/stop)",
-  "usage_forward_start": "Использование: brow forward start <имя_конфигурации> [локальный_порт]",
+  "usage_forward_start": "Использование: brow forward start [--sudo] <имя_конфигурации> [локальный_порт]",
   "usage_forward_stop": "Использование: brow forward stop <id-перенаправления|имя_конфигурации>",
   "unknown_forward_subcmd": "Неизвестная подкоманда forward: %s",
   "available_forward_subcmds": "Доступные подкоманды: start, list, stop",
 
   "usage_stop": "Использование: brow stop <id_подключения|имя_конфигурации>",
-  "usage_connect": "Использование: brow connect <имя_конфигурации> [локальный_порт]",
+  "usage_connect": "Использование: brow connect [--sudo] <имя_конфигурации> [локальный_порт]",
   "unknown_command": "Неизвестная команда: %s",
 
   "checking_running_pods": "Проверка наличия запущенных Подов...",
@@ -236,5 +236,7 @@
   "completion_subcmd_forward_list": "Список активных перенаправлений",
   "completion_subcmd_forward_stop": "Остановить конкретное перенаправление",
 
-  "completion_subcmd_language_set": "Установить язык"
+  "completion_subcmd_language_set": "Установить язык",
+  "completion_option_sudo": "Использовать sudo для низкономерных портов (0-1023)",
+  "using_sudo": "Использование sudo для доступа к привилегированным портам..."
 }

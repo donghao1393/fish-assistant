@@ -137,7 +137,13 @@ function brow --description "Kubernetes Connection Manager"
 
             switch $subcmd
                 case start
-                    if test (count $argv) -lt 1
+                    # 解析参数
+                    set -l options s/sudo
+                    argparse $options -- $argv
+
+                    # 检查是否有足够的参数
+                    set -l args_count (count $argv)
+                    if test $args_count -lt 1
                         echo (_brow_i18n_get "usage_forward_start")
                         return 1
                     end
@@ -145,7 +151,7 @@ function brow --description "Kubernetes Connection Manager"
                     set -l config_name $argv[1]
                     set -l local_port ""
 
-                    if test (count $argv) -ge 2
+                    if test $args_count -ge 2
                         set local_port $argv[2]
                     end
 
@@ -156,9 +162,15 @@ function brow --description "Kubernetes Connection Manager"
                         return 1
                     end
 
+                    # 检查是否使用sudo
+                    set -l use_sudo false
+                    if set -q _flag_sudo
+                        set use_sudo true
+                    end
+
                     # 直接调用_brow_forward_start函数，并将其输出传递给用户
                     # 返回值是转发ID
-                    set -l forward_id (_brow_forward_start $config_name $local_port)
+                    set -l forward_id (_brow_forward_start $config_name $local_port $use_sudo)
 
                     # 如果成功，显示转发ID
                     if test $status -eq 0
@@ -194,7 +206,13 @@ function brow --description "Kubernetes Connection Manager"
 
         case connect
             # 创建连接
-            if test (count $argv) -lt 1
+            # 解析参数
+            set -l options s/sudo
+            argparse $options -- $argv
+
+            # 检查是否有足够的参数
+            set -l args_count (count $argv)
+            if test $args_count -lt 1
                 echo (_brow_i18n_get "usage_connect")
                 return 1
             end
@@ -202,7 +220,7 @@ function brow --description "Kubernetes Connection Manager"
             set -l config_name $argv[1]
             set -l local_port ""
 
-            if test (count $argv) -ge 2
+            if test $args_count -ge 2
                 set local_port $argv[2]
             end
 
@@ -213,8 +231,14 @@ function brow --description "Kubernetes Connection Manager"
                 return 1
             end
 
+            # 检查是否使用sudo
+            set -l use_sudo false
+            if set -q _flag_sudo
+                set use_sudo true
+            end
+
             # 直接调用_brow_connect函数
-            _brow_connect $config_name $local_port
+            _brow_connect $config_name $local_port $use_sudo
 
         case health-check
             # 检查和修复不一致的状态
@@ -313,8 +337,9 @@ function _brow_help
     echo (_brow_i18n_get "help_example_stop")
 end
 
-function _brow_connect --argument-names config_name local_port
+function _brow_connect --argument-names config_name local_port use_sudo
     # 一步完成创建 Pod 和转发
+    # use_sudo: 是否使用sudo运行端口转发命令，用于访问低序号端口(0-1023)
 
     # 先检查配置是否存在
     if not _brow_config_exists $config_name
@@ -329,7 +354,7 @@ function _brow_connect --argument-names config_name local_port
     end
 
     # 直接调用_brow_forward_start函数，它会处理Pod的创建和端口转发
-    set -l forward_id (_brow_forward_start $config_name $local_port)
+    set -l forward_id (_brow_forward_start $config_name $local_port $use_sudo)
     set -l forward_status $status
 
     if test $forward_status -ne 0
@@ -337,7 +362,8 @@ function _brow_connect --argument-names config_name local_port
         # 尝试使用备用端口
         set -l backup_port (math $local_port + 1000)
         echo (_brow_i18n_format "trying_port" $backup_port)
-        set -l backup_id (_brow_forward_start $config_name $backup_port)
+        # 备用端口通常大于1024，不需要sudo，但仍然传递use_sudo以保持一致性
+        set -l backup_id (_brow_forward_start $config_name $backup_port $use_sudo)
         set -l backup_status $status
 
         if test $backup_status -eq 0

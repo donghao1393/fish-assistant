@@ -76,7 +76,7 @@
 
   "help_title": "brow - Kubernetes 连接管理工具",
   "help_main_commands": "主要命令:",
-  "help_cmd_connect": "  brow connect <配置名称> [本地端口]     创建连接到指定配置",
+  "help_cmd_connect": "  brow connect [--sudo] <配置名称> [本地端口]     创建连接到指定配置",
   "help_cmd_list": "  brow list                         列出活跃的连接",
   "help_cmd_stop": "  brow stop <连接ID|配置名称>        停止连接并删除Pod",
 
@@ -94,7 +94,7 @@
   "help_cmd_pod_cleanup": "  brow pod cleanup                  清理过期的 Pod",
   "help_cmd_forward_list": "  brow forward list                 列出活跃的转发 (同 brow list)",
   "help_cmd_forward_stop": "  brow forward stop <ID|配置名称>    停止转发 (不删除Pod)",
-  "help_cmd_forward_start": "  brow forward start <配置名称> [本地端口]  开始端口转发 (同 brow connect)",
+  "help_cmd_forward_start": "  brow forward start [--sudo] <配置名称> [本地端口]  开始端口转发 (同 brow connect)",
   "help_cmd_health_check": "  brow health-check                  检查和修复不一致的状态",
   "help_cmd_language": "  brow language                     显示当前语言设置",
   "help_cmd_language_set": "  brow language set <语言代码>      设置语言 (zh, en, ...)",
@@ -130,13 +130,13 @@
   "available_pod_subcmds": "可用的子命令: create, list, info, delete, cleanup",
 
   "error_forward_cmd": "错误: forward 命令需要指定操作类型 (start/list/stop)",
-  "usage_forward_start": "用法: brow forward start <配置名称> [local_port]",
+  "usage_forward_start": "用法: brow forward start [--sudo] <配置名称> [local_port]",
   "usage_forward_stop": "用法: brow forward stop <forward-id|配置名称>",
   "unknown_forward_subcmd": "未知的 forward 子命令: %s",
   "available_forward_subcmds": "可用的子命令: start, list, stop",
 
   "usage_stop": "用法: brow stop <连接ID|配置名称>",
-  "usage_connect": "用法: brow connect <配置名称> [本地端口]",
+  "usage_connect": "用法: brow connect [--sudo] <配置名称> [本地端口]",
   "unknown_command": "未知命令: %s",
 
   "checking_running_pods": "检查是否已有运行中的Pod...",
@@ -236,5 +236,7 @@
   "completion_subcmd_forward_list": "列出活跃的转发",
   "completion_subcmd_forward_stop": "停止特定的转发",
 
-  "completion_subcmd_language_set": "设置语言"
+  "completion_subcmd_language_set": "设置语言",
+  "completion_option_sudo": "使用sudo访问低序号端口(0-1023)",
+  "using_sudo": "正在使用sudo访问特权端口..."
 }

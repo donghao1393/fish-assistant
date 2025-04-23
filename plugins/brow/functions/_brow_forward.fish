@@ -1,6 +1,7 @@
-function _brow_forward_start --argument-names config_name local_port
+function _brow_forward_start --argument-names config_name local_port use_sudo
     # 开始端口转发
-    # 用法: _brow_forward_start <配置名称> [local_port]
+    # 用法: _brow_forward_start <配置名称> [local_port] [use_sudo]
+    # use_sudo: 是否使用sudo运行端口转发命令，用于访问低序号端口(0-1023)
 
     # 处理可能的制表符和描述信息
     # 如果输入包含制表符，只取第一部分（实际的配置名称）
@@ -94,7 +95,20 @@ function _brow_forward_start --argument-names config_name local_port
     # 启动端口转发进程
     # 将错误输出重定向到临时文件
     set -l error_file (mktemp)
-    kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >$error_file 2>&1 &
+
+    # 检查是否使用sudo
+    # 如果端口小于1024且指定了use_sudo，则使用sudo
+    set -l is_privileged_port 0
+    if test $local_port -lt 1024
+        set is_privileged_port 1
+    end
+
+    if test "$use_sudo" = true -a $is_privileged_port -eq 1
+        echo (_brow_i18n_get "using_sudo") >&2
+        sudo kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >$error_file 2>&1 &
+    else
+        kubectl --context=$k8s_context port-forward pod/$pod_id $local_port:$remote_port >$error_file 2>&1 &
+    end
 
     # 获取进程ID
     set -l pid $last_pid
