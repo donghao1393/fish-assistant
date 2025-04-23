@@ -193,13 +193,13 @@ function __brow_k8s_contexts
 end
 
 # 主命令补全
-complete -c brow -f -n __brow_needs_command -a connect -d (_brow_i18n_get 'completion_cmd_connect')
+complete -c brow -f -n __brow_needs_command -a start -d (_brow_i18n_get 'completion_cmd_start')
 complete -c brow -f -n __brow_needs_command -a list -d (_brow_i18n_get 'completion_cmd_list')
 complete -c brow -f -n __brow_needs_command -a stop -d (_brow_i18n_get 'completion_cmd_stop')
 
 # 选项补全
-# 在connect命令中添加--sudo选项
-complete -c brow -n "__brow_using_command connect" -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
+# 在start命令中添加--sudo选项
+complete -c brow -n "__brow_using_command start" -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
 # 在forward start命令中添加--sudo选项
 complete -c brow -n "__brow_using_subcommand forward start" -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
 complete -c brow -f -n __brow_needs_command -a config -d (_brow_i18n_get 'completion_cmd_config')
@@ -234,7 +234,7 @@ complete -c brow -f -n "__brow_using_subcommand config show" -a "(__brow_config_
 complete -c brow -f -n "__brow_using_subcommand config edit" -a "(__brow_config_names)"
 complete -c brow -f -n "__brow_using_subcommand config remove" -a "(__brow_config_names)"
 complete -c brow -f -n "__brow_using_subcommand pod create" -a "(__brow_config_names)"
-complete -c brow -f -n "__brow_using_command connect" -a "(__brow_config_names)"
+complete -c brow -f -n "__brow_using_command start" -a "(__brow_config_names)"
 
 # Pod ID补全
 complete -c brow -f -n "__brow_using_subcommand pod info" -a "(__brow_pod_ids)"

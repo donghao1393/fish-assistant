@@ -204,7 +204,7 @@ function brow --description "Kubernetes Connection Manager"
             # 自动删除Pod（第二个参数为true）
             _brow_forward_stop $argv[1] true
 
-        case connect
+        case start
             # 创建连接
             # 解析参数
             set -l options s/sudo
@@ -213,7 +213,7 @@ function brow --description "Kubernetes Connection Manager"
             # 检查是否有足够的参数
             set -l args_count (count $argv)
             if test $args_count -lt 1
-                echo (_brow_i18n_get "usage_connect")
+                echo (_brow_i18n_get "usage_start")
                 return 1
             end
 
@@ -305,7 +305,7 @@ function _brow_help
     echo (_brow_i18n_get "help_title")
     echo
     echo (_brow_i18n_get "help_main_commands")
-    echo (_brow_i18n_get "help_cmd_connect")
+    echo (_brow_i18n_get "help_cmd_start")
     echo (_brow_i18n_get "help_cmd_list")
     echo (_brow_i18n_get "help_cmd_stop")
     echo
@@ -332,7 +332,7 @@ function _brow_help
     echo
     echo (_brow_i18n_get "help_examples")
     echo (_brow_i18n_get "help_example_config_add")
-    echo (_brow_i18n_get "help_example_connect")
+    echo (_brow_i18n_get "help_example_start")
     echo (_brow_i18n_get "help_example_list")
     echo (_brow_i18n_get "help_example_stop")
 end

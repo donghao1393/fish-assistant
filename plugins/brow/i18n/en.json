@@ -76,7 +76,7 @@
 
   "help_title": "brow - Kubernetes Connection Manager",
   "help_main_commands": "Main Commands:",
-  "help_cmd_connect": "  brow connect [--sudo] <config_name> [local_port]     Create connection to specified config",
+  "help_cmd_start": "  brow start [--sudo] <config_name> [local_port]     Create connection to specified config",
   "help_cmd_list": "  brow list                                List active connections",
   "help_cmd_stop": "  brow stop <forward_id|config_name>       Stop connection and delete Pod",
 
@@ -94,7 +94,7 @@
   "help_cmd_pod_cleanup": "  brow pod cleanup                        Clean up expired Pods",
   "help_cmd_forward_list": "  brow forward list                       List active forwards (same as brow list)",
   "help_cmd_forward_stop": "  brow forward stop <id|config_name>      Stop forwarding (without deleting Pod)",
-  "help_cmd_forward_start": "  brow forward start [--sudo] <config_name> [local_port]  Start port forwarding (same as brow connect)",
+  "help_cmd_forward_start": "  brow forward start [--sudo] <config_name> [local_port]  Start port forwarding (same as brow start)",
   "help_cmd_health_check": "  brow health-check                        Check and fix inconsistent states",
   "help_cmd_language": "  brow language                           Show current language setting",
   "help_cmd_language_set": "  brow language set <language_code>        Set language (zh, en, ...)",
@@ -103,7 +103,7 @@
 
   "help_examples": "Examples:",
   "help_example_config_add": "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m",
-  "help_example_connect": "  brow connect mysql-dev                  # Create connection",
+  "help_example_start": "  brow start mysql-dev                    # Create connection",
   "help_example_list": "  brow list                               # View connections",
   "help_example_stop": "  brow stop mysql-dev                    # Stop connection",
 
@@ -136,7 +136,7 @@
   "available_forward_subcmds": "Available subcommands: start, list, stop",
 
   "usage_stop": "Usage: brow stop <connection_id|config_name>",
-  "usage_connect": "Usage: brow connect [--sudo] <config_name> [local_port]",
+  "usage_start": "Usage: brow start [--sudo] <config_name> [local_port]",
   "unknown_command": "Unknown command: %s",
 
   "checking_running_pods": "Checking for running Pods...",
@@ -209,7 +209,7 @@
   "completion_config": "[config]",
   "completion_active_connection": "[active connection]",
 
-  "completion_cmd_connect": "Create connection to specified config",
+  "completion_cmd_start": "Create connection to specified config",
   "completion_cmd_list": "List active connections",
   "completion_cmd_stop": "Stop connection",
   "completion_cmd_config": "Manage connection configurations",

@@ -76,7 +76,7 @@
 
   "help_title": "brow - Менеджер подключений Kubernetes",
   "help_main_commands": "Основные команды:",
-  "help_cmd_connect": "  brow connect [--sudo] <имя_конфигурации> [локальный_порт]     Создать подключение к указанной конфигурации",
+  "help_cmd_start": "  brow start [--sudo] <имя_конфигурации> [локальный_порт]     Создать подключение к указанной конфигурации",
   "help_cmd_list": "  brow list                                Список активных подключений",
   "help_cmd_stop": "  brow stop <id_перенаправления|имя_конфигурации>       Остановить подключение и удалить Под",
 
@@ -94,7 +94,7 @@
   "help_cmd_pod_cleanup": "  brow pod cleanup                        Очистить истекшие Поды",
   "help_cmd_forward_list": "  brow forward list                       Список активных перенаправлений (то же, что и brow list)",
   "help_cmd_forward_stop": "  brow forward stop <id|имя_конфигурации>      Остановить перенаправление (без удаления Пода)",
-  "help_cmd_forward_start": "  brow forward start [--sudo] <имя_конфигурации> [локальный_порт]  Запустить перенаправление порта (то же, что и brow connect)",
+  "help_cmd_forward_start": "  brow forward start [--sudo] <имя_конфигурации> [локальный_порт]  Запустить перенаправление порта (то же, что и brow start)",
   "help_cmd_health_check": "  brow health-check                        Проверить и исправить несогласованные состояния",
   "help_cmd_language": "  brow language                           Показать текущую языковую настройку",
   "help_cmd_language_set": "  brow language set <код_языка>        Установить язык (zh, en, ru, ...)",
@@ -103,7 +103,7 @@
 
   "help_examples": "Примеры:",
   "help_example_config_add": "  brow config add mysql-dev oasis-dev-aks-admin 10.0.0.1 3306 3306 mysql 30m",
-  "help_example_connect": "  brow connect mysql-dev                  # Создать подключение",
+  "help_example_start": "  brow start mysql-dev                    # Создать подключение",
   "help_example_list": "  brow list                               # Просмотр подключений",
   "help_example_stop": "  brow stop mysql-dev                    # Остановить подключение",
 
@@ -136,7 +136,7 @@
   "available_forward_subcmds": "Доступные подкоманды: start, list, stop",
 
   "usage_stop": "Использование: brow stop <id_подключения|имя_конфигурации>",
-  "usage_connect": "Использование: brow connect [--sudo] <имя_конфигурации> [локальный_порт]",
+  "usage_start": "Использование: brow start [--sudo] <имя_конфигурации> [локальный_порт]",
   "unknown_command": "Неизвестная команда: %s",
 
   "checking_running_pods": "Проверка наличия запущенных Подов...",
@@ -209,7 +209,7 @@
   "completion_config": "[конфигурация]",
   "completion_active_connection": "[активное соединение]",
 
-  "completion_cmd_connect": "Создать подключение к указанной конфигурации",
+  "completion_cmd_start": "Создать подключение к указанной конфигурации",
   "completion_cmd_list": "Список активных подключений",
   "completion_cmd_stop": "Остановить подключение",
   "completion_cmd_config": "Управление конфигурациями подключений",
