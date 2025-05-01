@@ -217,11 +217,8 @@ function token_count --description 'Count tokens in text files for LLM interacti
         end
 
         # 使用fish -c在子shell中执行，自动激活和退出虚拟环境
-        echo "执行命令: cd $script_dir && source $venv_dir/bin/activate.fish && uv run --active $counter_script \"$file_path\" $verbose_flag" >&2
         set result (fish -c "cd $script_dir && source $venv_dir/bin/activate.fish && uv run --active $counter_script \"$file_path\" $verbose_flag")
         set -l status_code $status
-        echo "命令执行结果: $status_code" >&2
-        echo "输出结果: $result" >&2
 
         if test $status_code -ne 0
             echo "Error: 处理文件失败: $file_path" >&2
