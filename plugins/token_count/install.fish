@@ -21,7 +21,10 @@ echo "安装完成！"
 # 测试安装
 echo "测试安装..."
 if test -f README.md
-    uv run token_counter.py README.md
+    # 激活虚拟环境并使用--active参数
+    source .venv/bin/activate.fish
+    uv run --active token_counter.py README.md
+    # 不需要deactivate，因为这是一个独立的脚本
 else
     echo "测试文件不存在，跳过测试"
 end
