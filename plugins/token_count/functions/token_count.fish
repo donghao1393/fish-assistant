@@ -75,8 +75,13 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 end
 
                 # 执行命令
-                set -l found_files (eval "$find_cmd $ext_pattern . -a" | head -n $max_files)
+                set -l found_files (eval "$find_cmd $ext_pattern \"$path\" -a" | head -n $max_files)
                 set expanded_files $expanded_files $found_files
+
+                # 显示处理信息
+                if set -q _flag_verbose
+                    echo "从目录 $path 中发现 "(count $found_files)" 个文件" >&2
+                end
 
             # 如果没有fd，使用find
             else
@@ -102,11 +107,11 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 # 执行命令
                 set -l found_files (eval "$find_cmd \( $ext_pattern \)" | head -n $max_files)
                 set expanded_files $expanded_files $found_files
-            end
 
-            # 显示处理信息
-            if set -q _flag_verbose
-                echo "从目录 $path 中发现 "(count $found_files)" 个文件" >&2
+                # 显示处理信息
+                if set -q _flag_verbose
+                    echo "从目录 $path 中发现 "(count $found_files)" 个文件" >&2
+                end
             end
 
         # 如果是文件，直接添加
