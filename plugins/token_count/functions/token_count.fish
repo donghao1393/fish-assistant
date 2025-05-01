@@ -58,9 +58,9 @@ function token_count --description 'Count tokens in text files for LLM interacti
             if command -q fd
                 # 构建基本命令
                 if set -q _flag_recursive
-                    set find_cmd fd -t f
+                    set find_cmd fd -t f -HI # 添加-HI参数，搜索隐藏文件并忽略.gitignore
                 else
-                    set find_cmd fd -t f -d 1
+                    set find_cmd fd -t f -d 1 -HI # 添加-HI参数，搜索隐藏文件并忽略.gitignore
                 end
 
                 # 添加文件类型过滤
@@ -75,11 +75,11 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 end
 
                 # 执行命令
-                # 对于包含特殊字符的路径，使用--full-path选项
+                # 对于包含特殊字符的路径，使用特殊处理
                 if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
-                    # 使用--full-path选项处理特殊字符
+                    # 使用子shell和pushd/popd处理特殊字符，避免改变当前工作目录
                     set -l abs_path (realpath "$path")
-                    set -l found_files (eval "cd \"$abs_path\" && $find_cmd $ext_pattern . -a" | head -n $max_files | sed "s|^|$abs_path/|")
+                    set -l found_files (fish -c "pushd \"$abs_path\"; $find_cmd $ext_pattern . -a; popd" | head -n $max_files | sed "s|^|$abs_path/|")
                     set expanded_files $expanded_files $found_files
                 else
                     # 正常处理
@@ -116,9 +116,9 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 # 执行命令
                 # 对于包含特殊字符的路径，使用特殊处理
                 if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
-                    # 使用cd进入目录然后查找
+                    # 使用子shell和pushd/popd处理特殊字符，避免改变当前工作目录
                     set -l abs_path (realpath "$path")
-                    set -l found_files (eval "cd \"$abs_path\" && find . -type f \( $ext_pattern \)" | head -n $max_files | sed "s|^\\.|$abs_path|")
+                    set -l found_files (fish -c "pushd \"$abs_path\"; find . -type f \( $ext_pattern \); popd" | head -n $max_files | sed "s|^\\./|$abs_path/|")
                     set expanded_files $expanded_files $found_files
                 else
                     # 正常处理
