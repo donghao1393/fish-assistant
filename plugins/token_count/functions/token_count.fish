@@ -157,9 +157,9 @@ function token_count --description 'Count tokens in text files for LLM interacti
     # 检查虚拟环境是否存在
     if not test -d $venv_dir
         echo "虚拟环境不存在，正在初始化..." >&2
-        pushd $script_dir
-        fish install.fish
-        popd
+
+        # 在子shell中执行安装脚本
+        fish -c "cd $script_dir && fish install.fish"
 
         if test $status -ne 0
             echo "Error: 初始化虚拟环境失败" >&2
@@ -204,18 +204,15 @@ function token_count --description 'Count tokens in text files for LLM interacti
             continue
         end
 
-        # 使用 uv 运行 Python 脚本并解析结果
-        pushd $script_dir
-
-        # 根据是否需要详细输出来决定是否传递 --verbose 参数
+        # 在子shell中执行Python脚本，自动激活和退出虚拟环境
+        set -l verbose_flag ""
         if set -q _flag_verbose
-            set result (uv run $counter_script "$file_path" --verbose)
-        else
-            set result (uv run $counter_script "$file_path" 2>/dev/null)
+            set verbose_flag "--verbose"
         end
 
+        # 使用fish -c在子shell中执行，自动激活和退出虚拟环境
+        set result (fish -c "cd $script_dir && source $venv_dir/bin/activate.fish && python $counter_script \"$file_path\" $verbose_flag")
         set -l status_code $status
-        popd
 
         if test $status_code -ne 0
             echo "Error: 处理文件失败: $file_path" >&2
