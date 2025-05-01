@@ -75,24 +75,40 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 end
 
                 # 执行命令
-                # 对于包含特殊字符的路径，使用特殊处理
+                # 对于所有路径，使用更可靠的方法
+                set -l abs_path (realpath "$path")
+                set -l temp_file (mktemp)
+
+                # 使用临时文件存储找到的文件列表
                 if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
-                    # 使用子shell和pushd/popd处理特殊字符，避免改变当前工作目录
-                    set -l abs_path (realpath "$path")
-                    # 使用现代化工具处理路径
-                    if command -q sd
-                        # 使用sd替代sed
-                        set found_files (fish -c "pushd \"$abs_path\"; $find_cmd $ext_pattern . -a | sd '^\\./?' '' | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
-                    else
-                        # 回退到sed
-                        set found_files (fish -c "pushd \"$abs_path\"; $find_cmd $ext_pattern . -a | sed \"s|^\\./||\" | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
-                    end
-                    set expanded_files $expanded_files $found_files
+                    # 对于特殊字符路径，使用子shell处理
+                    fish -c "cd \"$abs_path\" && $find_cmd $ext_pattern . -a > \"$temp_file\""
                 else
                     # 正常处理
-                    set -l found_files (eval "$find_cmd $ext_pattern \"$path\" -a" | head -n $max_files)
-                    set expanded_files $expanded_files $found_files
+                    eval "$find_cmd $ext_pattern \"$path\" -a > \"$temp_file\""
                 end
+
+                # 读取临时文件并构建完整路径
+                set -l found_files
+                while read -l line
+                    # 如果是相对路径（以./开头），转换为绝对路径
+                    if string match -q "./*" -- "$line"
+                        set -a found_files "$abs_path/"(string replace -r "^\\./?" "" -- "$line")
+                    else
+                        # 已经是绝对路径或相对于当前目录的路径
+                        set -a found_files "$line"
+                    end
+                end < "$temp_file"
+
+                # 删除临时文件
+                rm "$temp_file"
+
+                # 限制文件数量
+                if test (count $found_files) -gt $max_files
+                    set found_files $found_files[1..$max_files]
+                end
+
+                set expanded_files $expanded_files $found_files
 
                 # 显示处理信息
                 if set -q _flag_verbose
@@ -121,24 +137,40 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 end
 
                 # 执行命令
-                # 对于包含特殊字符的路径，使用特殊处理
+                # 对于所有路径，使用更可靠的方法
+                set -l abs_path (realpath "$path")
+                set -l temp_file (mktemp)
+
+                # 使用临时文件存储找到的文件列表
                 if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
-                    # 使用子shell和pushd/popd处理特殊字符，避免改变当前工作目录
-                    set -l abs_path (realpath "$path")
-                    # 使用现代化工具处理路径
-                    if command -q sd
-                        # 使用sd替代sed
-                        set found_files (fish -c "pushd \"$abs_path\"; find . -type f \( $ext_pattern \) | sd '^\\./?' '' | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
-                    else
-                        # 回退到sed
-                        set found_files (fish -c "pushd \"$abs_path\"; find . -type f \( $ext_pattern \) | sed \"s|^\\./||\" | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
-                    end
-                    set expanded_files $expanded_files $found_files
+                    # 对于特殊字符路径，使用子shell处理
+                    fish -c "cd \"$abs_path\" && find . -type f \( $ext_pattern \) > \"$temp_file\""
                 else
                     # 正常处理
-                    set -l found_files (eval "$find_cmd \( $ext_pattern \)" | head -n $max_files)
-                    set expanded_files $expanded_files $found_files
+                    eval "$find_cmd \( $ext_pattern \) > \"$temp_file\""
                 end
+
+                # 读取临时文件并构建完整路径
+                set -l found_files
+                while read -l line
+                    # 如果是相对路径（以./开头），转换为绝对路径
+                    if string match -q "./*" -- "$line"
+                        set -a found_files "$abs_path/"(string replace -r "^\\./?" "" -- "$line")
+                    else
+                        # 已经是绝对路径或相对于当前目录的路径
+                        set -a found_files "$line"
+                    end
+                end < "$temp_file"
+
+                # 删除临时文件
+                rm "$temp_file"
+
+                # 限制文件数量
+                if test (count $found_files) -gt $max_files
+                    set found_files $found_files[1..$max_files]
+                end
+
+                set expanded_files $expanded_files $found_files
 
                 # 显示处理信息
                 if set -q _flag_verbose
