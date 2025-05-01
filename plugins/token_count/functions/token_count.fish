@@ -1,11 +1,18 @@
 function token_count --description 'Count tokens in text files for LLM interaction'
     # 参数处理
-    set -l options 'h/human-readable' 'v/verbose'
+    set -l options 'h/human-readable' 'v/verbose' 'r/recursive' 'e/exclude=' 'max-files='
     argparse $options -- $argv
 
     if test (count $argv) -eq 0
-        echo "Usage: token_count [-h|--human-readable] [-v|--verbose] <file_path> [file_path...]" >&2
+        echo "Usage: token_count [-h|--human-readable] [-v|--verbose] [-r|--recursive] [--max-files=N] [-e|--exclude=PATTERN] <file_path|directory> [file_path|directory...]" >&2
+        echo "Run 'token_count --help' for more information" >&2
         return 1
+    end
+
+    # 显示帮助信息
+    if contains -- --help $argv
+        _token_count_help
+        return 0
     end
 
     # 检查FISH_ASSISTANT_HOME环境变量
@@ -28,20 +35,92 @@ function token_count --description 'Count tokens in text files for LLM interacti
         set is_multiple 1
     end
 
-    # 过滤掉不应处理的二进制文件
-    set -l filtered_files
-
-    # 先根据扩展名进行初步过滤，提高性能
+    # 定义支持的文件类型
     set -l text_extensions txt md markdown rst py js ts html css xml json yaml yml toml ini conf sh bash zsh fish php rb pl sql c cpp h hpp java go cs scala kt swift rs d jsx tsx vue svelte scss sass less csv tsv log
     set -l doc_extensions pdf doc docx ppt pptx xls xlsx
 
-    for file in $files
-        # 先检查是否目录
-        if test -d "$file"
-            # 目录直接跳过，不显示错误
-            continue
-        end
+    # 处理目录和文件路径
+    set -l expanded_files
+    set -l max_files 1000 # 默认最大文件数
 
+    # 如果设置了最大文件数限制
+    if set -q _flag_max_files
+        set max_files $_flag_max_files
+    end
+
+    # 处理每个输入路径
+    for path in $files
+        # 检查是否目录
+        if test -d "$path"
+            set -l find_cmd
+
+            # 优先使用fd工具，如果可用
+            if command -q fd
+                # 构建基本命令
+                if set -q _flag_recursive
+                    set find_cmd fd -t f
+                else
+                    set find_cmd fd -t f -d 1
+                end
+
+                # 添加文件类型过滤
+                set -l ext_pattern
+                for ext in $text_extensions $doc_extensions
+                    set ext_pattern "$ext_pattern -e .$ext"
+                end
+
+                # 添加排除模式
+                if set -q _flag_exclude
+                    set find_cmd $find_cmd -E "$_flag_exclude"
+                end
+
+                # 执行命令
+                set -l found_files (eval "$find_cmd $ext_pattern . -a" | head -n $max_files)
+                set expanded_files $expanded_files $found_files
+
+            # 如果没有fd，使用find
+            else
+                # 构建基本命令
+                if set -q _flag_recursive
+                    set find_cmd find "$path" -type f
+                else
+                    set find_cmd find "$path" -maxdepth 1 -type f
+                end
+
+                # 添加文件类型过滤
+                set -l ext_pattern ""
+                for ext in $text_extensions $doc_extensions
+                    set ext_pattern "$ext_pattern -o -name '*.$ext'"
+                end
+                set ext_pattern (string sub -s 4 "$ext_pattern") # 移除第一个 -o
+
+                # 添加排除模式
+                if set -q _flag_exclude
+                    set find_cmd $find_cmd -not -path "*$_flag_exclude*"
+                end
+
+                # 执行命令
+                set -l found_files (eval "$find_cmd \( $ext_pattern \)" | head -n $max_files)
+                set expanded_files $expanded_files $found_files
+            end
+
+            # 显示处理信息
+            if set -q _flag_verbose
+                echo "从目录 $path 中发现 "(count $found_files)" 个文件" >&2
+            end
+
+        # 如果是文件，直接添加
+        else if test -f "$path"
+            set -a expanded_files "$path"
+        else
+            echo "跳过：$path (不存在或不是文件/目录)" >&2
+        end
+    end
+
+    # 过滤掉不应处理的二进制文件
+    set -l filtered_files
+
+    for file in $expanded_files
         if test -f "$file"
             # 检查扩展名
             set -l ext (string split -r -m1 '.' "$file" | tail -n 1)
@@ -60,11 +139,15 @@ function token_count --description 'Count tokens in text files for LLM interacti
                    string match -q "application/vnd.openxmlformats-officedocument.*" -- "$file_type"
                     set -a filtered_files $file
                 else
-                    echo "跳过不支持的文件类型: $file ($file_type)" >&2
+                    if set -q _flag_verbose
+                        echo "跳过不支持的文件类型: $file ($file_type)" >&2
+                    end
                 end
             end
         else
-            echo "跳过：$file (不存在)" >&2
+            if set -q _flag_verbose
+                echo "跳过：$file (不存在)" >&2
+            end
         end
     end
 
@@ -529,4 +612,43 @@ function _human_readable_size --argument-names bytes
     else
         printf "%.1f GB" (math "$bytes / 1073741824")
     end
+end
+
+# 帮助信息函数
+function _token_count_help
+    echo "token_count - 计算文本文件和PDF文件中token数量的工具"
+    echo
+    echo "用法: token_count [选项] <文件路径|目录> [文件路径|目录...]"
+    echo
+    echo "选项:"
+    echo "  -h, --human-readable    使用人类可读格式显示数字（如K/M/G等）"
+    echo "  -v, --verbose           显示详细处理信息和警告"
+    echo "  -r, --recursive         递归处理目录中的文件"
+    echo "  -e, --exclude=PATTERN   排除匹配指定模式的文件"
+    echo "  --max-files=N           限制处理的最大文件数（默认1000）"
+    echo "  --help                  显示此帮助信息"
+    echo
+    echo "示例:"
+    echo "  token_count document.txt                  # 处理单个文本文件"
+    echo "  token_count document.pdf                  # 处理单个PDF文件"
+    echo "  token_count *.md                          # 处理所有Markdown文件"
+    echo "  token_count -h *.md                       # 使用人类可读格式显示所有Markdown文件的统计"
+    echo "  token_count -v document.pdf               # 处理PDF文件并显示详细警告信息"
+    echo "  token_count src/                          # 处理src目录下的所有文件（非递归）"
+    echo "  token_count -r src/                       # 递归处理src目录及其子目录下的所有文件"
+    echo "  token_count -r -e=".git" src/              # 递归处理src目录，但排除.git目录"
+    echo "  token_count -r --max-files=100 src/       # 递归处理src目录，最多处理100个文件"
+    echo "  token_count -r -h src/ docs/              # 递归处理多个目录并使用人类可读格式"
+    echo
+    echo "支持的文件类型:"
+    echo "  - 文本文件: txt, md, py, js, html, css, json, yaml, 等"
+    echo "  - 文档文件: pdf, doc, docx, ppt, pptx, xls, xlsx"
+    echo
+    echo "注意: 处理大型目录时，请使用--max-files选项限制文件数量以提高性能"
+    echo
+    echo "依赖:"
+    echo "  - Python包: tiktoken, chardet, python-magic, pdfplumber"
+    echo "  - 系统工具: file, find/fd"
+    echo
+    echo "如果遇到问题，请尝试使用-v选项查看详细输出"
 end
