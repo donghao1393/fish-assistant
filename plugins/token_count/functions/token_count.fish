@@ -75,8 +75,17 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 end
 
                 # 执行命令
-                set -l found_files (eval "$find_cmd $ext_pattern \"$path\" -a" | head -n $max_files)
-                set expanded_files $expanded_files $found_files
+                # 对于包含特殊字符的路径，使用--full-path选项
+                if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
+                    # 使用--full-path选项处理特殊字符
+                    set -l abs_path (realpath "$path")
+                    set -l found_files (eval "cd \"$abs_path\" && $find_cmd $ext_pattern . -a" | head -n $max_files | sed "s|^|$abs_path/|")
+                    set expanded_files $expanded_files $found_files
+                else
+                    # 正常处理
+                    set -l found_files (eval "$find_cmd $ext_pattern \"$path\" -a" | head -n $max_files)
+                    set expanded_files $expanded_files $found_files
+                end
 
                 # 显示处理信息
                 if set -q _flag_verbose
@@ -105,8 +114,17 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 end
 
                 # 执行命令
-                set -l found_files (eval "$find_cmd \( $ext_pattern \)" | head -n $max_files)
-                set expanded_files $expanded_files $found_files
+                # 对于包含特殊字符的路径，使用特殊处理
+                if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
+                    # 使用cd进入目录然后查找
+                    set -l abs_path (realpath "$path")
+                    set -l found_files (eval "cd \"$abs_path\" && find . -type f \( $ext_pattern \)" | head -n $max_files | sed "s|^\\.|$abs_path|")
+                    set expanded_files $expanded_files $found_files
+                else
+                    # 正常处理
+                    set -l found_files (eval "$find_cmd \( $ext_pattern \)" | head -n $max_files)
+                    set expanded_files $expanded_files $found_files
+                end
 
                 # 显示处理信息
                 if set -q _flag_verbose
