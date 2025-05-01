@@ -16,15 +16,21 @@ def extract_pdf_text(file_path, verbose=False):
     try:
         # 默认过滤pdfplumber警告，除非启用详细模式
         if not verbose:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message="CropBox missing")
-                warnings.filterwarnings("ignore", category=UserWarning)
+            # 完全禁用警告输出
+            old_stderr = sys.stderr
+            sys.stderr = open(os.devnull, 'w')
+
+            try:
                 with pdfplumber.open(file_path) as pdf:
                     text = ""
                     for page in pdf.pages:
                         extracted = page.extract_text()
                         if extracted:
                             text += extracted
+            finally:
+                # 恢复stderr
+                sys.stderr.close()
+                sys.stderr = old_stderr
         else:
             # 详细模式：显示所有警告
             with pdfplumber.open(file_path) as pdf:
@@ -33,7 +39,7 @@ def extract_pdf_text(file_path, verbose=False):
                     extracted = page.extract_text()
                     if extracted:
                         text += extracted
-                        
+
         if not text:
             print(f"Warning: No text extracted from PDF: {file_path}", file=sys.stderr)
             return ""
@@ -77,16 +83,16 @@ def process_file(file_path, verbose=False):
 
         # 检查文件类型是否支持
         supported_types = [
-            "text/", "application/json", "application/x-script", "application/xml", 
+            "text/", "application/json", "application/x-script", "application/xml",
             "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument"
         ]
-        
+
         is_supported = False
         for t in supported_types:
             if t in file_type:
                 is_supported = True
                 break
-                
+
         if not is_supported:
             print(f"Error: Unsupported file type: {file_type}", file=sys.stderr)
             return None
@@ -119,7 +125,7 @@ def process_file(file_path, verbose=False):
         char_count = len(content)
         word_count = len(content.split())
         token_count = count_tokens(content)
-        
+
         if token_count is None:
             token_count = 0
 
@@ -139,20 +145,20 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python token_counter.py <file_path> [--verbose]", file=sys.stderr)
         sys.exit(1)
-    
+
     file_path = sys.argv[1]
     verbose = "--verbose" in sys.argv or "-v" in sys.argv
-    
+
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
-    
+
     if not os.path.isfile(file_path):
         print(f"Not a file: {file_path}", file=sys.stderr)
         sys.exit(1)
-        
+
     result = process_file(file_path, verbose)
-    
+
     if result:
         # 使用json模块输出简洁的单行JSON
         print(json.dumps(result))
