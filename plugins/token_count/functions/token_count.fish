@@ -79,8 +79,14 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
                     # 使用子shell和pushd/popd处理特殊字符，避免改变当前工作目录
                     set -l abs_path (realpath "$path")
-                    # 不使用sed添加路径前缀，而是直接在子shell中生成完整路径
-                    set -l found_files (fish -c "pushd \"$abs_path\"; $find_cmd $ext_pattern . -a | sed \"s|^\\./||\" | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
+                    # 使用现代化工具处理路径
+                    if command -q sd
+                        # 使用sd替代sed
+                        set found_files (fish -c "pushd \"$abs_path\"; $find_cmd $ext_pattern . -a | sd '^\\./?' '' | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
+                    else
+                        # 回退到sed
+                        set found_files (fish -c "pushd \"$abs_path\"; $find_cmd $ext_pattern . -a | sed \"s|^\\./||\" | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
+                    end
                     set expanded_files $expanded_files $found_files
                 else
                     # 正常处理
@@ -119,8 +125,14 @@ function token_count --description 'Count tokens in text files for LLM interacti
                 if string match -q "*,*" -- "$path"; or string match -q "*(*" -- "$path"; or string match -q "*)*" -- "$path"; or string match -q "*[*" -- "$path"; or string match -q "*]*" -- "$path"
                     # 使用子shell和pushd/popd处理特殊字符，避免改变当前工作目录
                     set -l abs_path (realpath "$path")
-                    # 不使用sed添加路径前缀，而是直接在子shell中生成完整路径
-                    set -l found_files (fish -c "pushd \"$abs_path\"; find . -type f \( $ext_pattern \) | sed \"s|^\\./||\" | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
+                    # 使用现代化工具处理路径
+                    if command -q sd
+                        # 使用sd替代sed
+                        set found_files (fish -c "pushd \"$abs_path\"; find . -type f \( $ext_pattern \) | sd '^\\./?' '' | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
+                    else
+                        # 回退到sed
+                        set found_files (fish -c "pushd \"$abs_path\"; find . -type f \( $ext_pattern \) | sed \"s|^\\./||\" | awk '{print \"$abs_path/\" \$0}'; popd" | head -n $max_files)
+                    end
                     set expanded_files $expanded_files $found_files
                 else
                     # 正常处理
