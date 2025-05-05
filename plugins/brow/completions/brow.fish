@@ -198,10 +198,7 @@ complete -c brow -f -n __brow_needs_command -a list -d (_brow_i18n_get 'completi
 complete -c brow -f -n __brow_needs_command -a stop -d (_brow_i18n_get 'completion_cmd_stop')
 
 # 选项补全
-# 在start命令中添加--sudo选项
-complete -c brow -n "__brow_using_command start" -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
-# 在forward start命令中添加--sudo选项
-complete -c brow -n "__brow_using_subcommand forward start" -s s -l sudo -d (_brow_i18n_get 'completion_option_sudo')
+# 低序号端口(0-1023)会自动使用sudo，不再需要--sudo选项
 complete -c brow -f -n __brow_needs_command -a config -d (_brow_i18n_get 'completion_cmd_config')
 complete -c brow -f -n __brow_needs_command -a pod -d (_brow_i18n_get 'completion_cmd_pod')
 complete -c brow -f -n __brow_needs_command -a forward -d (_brow_i18n_get 'completion_cmd_forward')

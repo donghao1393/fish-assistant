@@ -1,7 +1,7 @@
-function _brow_forward_start --argument-names config_name local_port use_sudo
+function _brow_forward_start --argument-names config_name local_port
     # 开始端口转发
-    # 用法: _brow_forward_start <配置名称> [local_port] [use_sudo]
-    # use_sudo: 是否使用sudo运行端口转发命令，用于访问低序号端口(0-1023)
+    # 用法: _brow_forward_start <配置名称> [local_port]
+    # 注意: 低序号端口(0-1023)会自动使用sudo
 
     # 处理可能的制表符和描述信息
     # 如果输入包含制表符，只取第一部分（实际的配置名称）
@@ -96,15 +96,14 @@ function _brow_forward_start --argument-names config_name local_port use_sudo
     # 将错误输出重定向到临时文件
     set -l error_file (mktemp)
 
-    # 检查是否使用sudo
-    # 如果端口小于1024且指定了use_sudo，则使用sudo
-    set -l is_privileged_port 0
+    # 检查是否需要使用sudo（端口小于1024）
+    set -l need_sudo false
     if test $local_port -lt 1024
-        set is_privileged_port 1
+        set need_sudo true
+        echo (_brow_i18n_get "auto_using_sudo") >&2
     end
 
-    if test "$use_sudo" = true -a $is_privileged_port -eq 1
-        echo (_brow_i18n_get "using_sudo") >&2
+    if test "$need_sudo" = true
         # 使用sudo时，先执行一个简单的sudo命令，确保密码输入完成
         sudo true
         # 密码输入完成后，启动端口转发

@@ -76,7 +76,7 @@
 
   "help_title": "brow - Kubernetes Connection Manager",
   "help_main_commands": "Main Commands:",
-  "help_cmd_start": "  brow start [--sudo] <config_name> [local_port]     Create connection to specified config",
+  "help_cmd_start": "  brow start <config_name> [local_port]     Create connection to specified config",
   "help_cmd_list": "  brow list                                List active connections",
   "help_cmd_stop": "  brow stop <forward_id|config_name>       Stop connection and delete Pod",
 
@@ -94,7 +94,7 @@
   "help_cmd_pod_cleanup": "  brow pod cleanup                        Clean up expired Pods",
   "help_cmd_forward_list": "  brow forward list                       List active forwards (same as brow list)",
   "help_cmd_forward_stop": "  brow forward stop <id|config_name>      Stop forwarding (without deleting Pod)",
-  "help_cmd_forward_start": "  brow forward start [--sudo] <config_name> [local_port]  Start port forwarding (same as brow start)",
+  "help_cmd_forward_start": "  brow forward start <config_name> [local_port]  Start port forwarding (same as brow start)",
   "help_cmd_health_check": "  brow health-check                        Check and fix inconsistent states",
   "help_cmd_language": "  brow language                           Show current language setting",
   "help_cmd_language_set": "  brow language set <language_code>        Set language (zh, en, ...)",
@@ -130,13 +130,13 @@
   "available_pod_subcmds": "Available subcommands: create, list, info, delete, cleanup",
 
   "error_forward_cmd": "Error: forward command requires an operation type (start/list/stop)",
-  "usage_forward_start": "Usage: brow forward start [--sudo] <config_name> [local_port]",
+  "usage_forward_start": "Usage: brow forward start <config_name> [local_port]",
   "usage_forward_stop": "Usage: brow forward stop <forward-id|config_name>",
   "unknown_forward_subcmd": "Unknown forward subcommand: %s",
   "available_forward_subcmds": "Available subcommands: start, list, stop",
 
   "usage_stop": "Usage: brow stop <connection_id|config_name>",
-  "usage_start": "Usage: brow start [--sudo] <config_name> [local_port]",
+  "usage_start": "Usage: brow start <config_name> [local_port]",
   "unknown_command": "Unknown command: %s",
 
   "checking_running_pods": "Checking for running Pods...",
@@ -239,5 +239,6 @@
   "completion_subcmd_language_set": "Set language",
   "completion_option_sudo": "Use sudo for low-numbered ports (0-1023)",
   "using_sudo": "Using sudo for privileged port access...",
+  "auto_using_sudo": "Detected low-numbered port (0-1023), automatically using sudo...",
   "warning_sudo_timeout": "Warning: Timed out waiting for sudo password input, connection may not work properly"
 }
