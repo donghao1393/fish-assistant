@@ -237,7 +237,7 @@
   "completion_subcmd_forward_stop": "停止特定的转发",
 
   "completion_subcmd_language_set": "设置语言",
-  "completion_option_sudo": "使用sudo访问低序号端口(0-1023)",
+
   "using_sudo": "正在使用sudo访问特权端口...",
   "auto_using_sudo": "检测到低序号端口(0-1023)，自动使用sudo...",
   "warning_sudo_timeout": "警告: 等待sudo密码输入超时，连接可能不正常"

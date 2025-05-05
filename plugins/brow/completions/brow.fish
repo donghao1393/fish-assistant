@@ -19,8 +19,7 @@ if not functions -q _brow_i18n_get
     function _brow_i18n_get
         # 定义一些基本的翻译
         switch $argv[1]
-            case completion_option_sudo
-                echo "Use sudo for low-numbered ports (0-1023)"
+
             case completion_cmd_connect
                 echo "Create connection to specified config"
             case completion_cmd_list

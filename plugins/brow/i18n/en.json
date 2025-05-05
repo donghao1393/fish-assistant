@@ -237,7 +237,7 @@
   "completion_subcmd_forward_stop": "Stop specific forward",
 
   "completion_subcmd_language_set": "Set language",
-  "completion_option_sudo": "Use sudo for low-numbered ports (0-1023)",
+
   "using_sudo": "Using sudo for privileged port access...",
   "auto_using_sudo": "Detected low-numbered port (0-1023), automatically using sudo...",
   "warning_sudo_timeout": "Warning: Timed out waiting for sudo password input, connection may not work properly"
